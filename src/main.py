@@ -49,7 +49,8 @@ async def get_contributions(
         try:
             after = (date - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
             before = (date + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-            url = f"{domain}/api/v4/users/{userid}/events?after={after}&before={before}"
+            path = f"/api/v4/users/{userid}/events?after={after}&before={before}"
+            url = urllib.parse.urljoin(domain, path)
             async with semaphore, client.get(url) as response:
                 logger.debug(f"GET: {url}")
                 json = await response.json()
