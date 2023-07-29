@@ -11,16 +11,18 @@ import sys
 from calendar import monthrange
 
 import aiohttp
-from solid2 import *
+from solid2 import (cube, import_stl, linear_extrude, polyhedron, rotate,
+                    scad_render_to_file, scale, text, translate)
 
-__author__ = 'Will Ho'
+__author__ = "Will Ho"
 
 logger = logging.getLogger(__name__)
+
 
 def _init_logger():
     logger.setLevel(logging.DEBUG)
     log_handler = logging.StreamHandler(sys.stdout)
-    log_formatter = logging.Formatter('%(created)f:%(levelname)s:%(name)s:%(module)s:%(message)s')
+    log_formatter = logging.Formatter("%(created)f:%(levelname)s:%(name)s:%(module)s:%(message)s")
     log_handler.setFormatter(log_formatter)
     logger.addHandler(log_handler)
 
@@ -30,28 +32,28 @@ async def get_contributions(semaphore, domain, username, token, date, contributi
 
     headers = {}
     if token:
-        headers['PRIVATE-TOKEN'] = token
+        headers["PRIVATE-TOKEN"] = token
 
     async with aiohttp.ClientSession(raise_for_status=True, headers=headers) as client:
         try:
-            after = (date - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
-            before = (date + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
-            url = f'{domain}/api/v4/users/{username}/events?after={after}&before={before}'
+            after = (date - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+            before = (date + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+            url = f"{domain}/api/v4/users/{username}/events?after={after}&before={before}"
             async with semaphore, client.get(url) as response:
-                logger.debug(f'GET: {url}')
+                logger.debug(f"GET: {url}")
                 json = await response.json()
-                logger.debug(f'RESPONSE: {json}')
-                contribution_matrix.append([int(date.strftime('%j')), int(date.strftime('%u')) - 1, len(json)])
+                logger.debug(f"RESPONSE: {json}")
+                contribution_matrix.append([int(date.strftime("%j")), int(date.strftime("%u")) - 1, len(json)])
 
         except Exception as err:
-            print(f'Exception occured: {err}')
+            logger.error(f"Exception occured: {err}")
             pass
 
 
 def all_dates_in_year(year=2020):
     for month in range(1, 13):
         for day in range(1, monthrange(year, month)[1] + 1):
-            yield datetime.datetime(year, month, day)
+            yield datetime.datetime(year, month, day, tzinfo=datetime.tinmezone.utc)
 
 
 def parse_contribution_matrix(contribution_matrix):
@@ -60,7 +62,7 @@ def parse_contribution_matrix(contribution_matrix):
     ordered_contribution_matrix = sorted(contribution_matrix, key=lambda x: x[0])
     year_contribution_list = [row.pop(2) for row in ordered_contribution_matrix]
 
-    for i in range(day_offset):
+    for _i in range(day_offset):
         year_contribution_list.insert(0, 0)
 
     return [year_contribution_list, max_contributions_by_day]
@@ -109,7 +111,7 @@ def generate_skyline_stl(username, year, contribution_matrix):
 
     user_scad = rotate([face_angle, 0, 0])(
         translate([base_length / 4, base_height / 2 - base_top_offset / 2, -1.5])(
-            linear_extrude(height=2)(text('@' + username, 5))
+            linear_extrude(height=2)(text("@" + username, 5))
         )
     )
 
@@ -117,7 +119,7 @@ def generate_skyline_stl(username, year, contribution_matrix):
         translate([base_length / 8, base_height / 2 - base_top_offset / 2 - 2, -1])(
             linear_extrude(height=2)(
                 scale([0.09, 0.09, 0.09])(
-                    import_stl(os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'gitlab.svg')
+                    import_stl(os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "gitlab.svg")
                 )
             )
         )
@@ -155,40 +157,47 @@ def generate_skyline_stl(username, year, contribution_matrix):
         else:
             bars += bar
 
-    scad_contributions_filename = 'gitlab_' + username + '_' + str(year)
+    scad_contributions_filename = "gitlab_" + username + "_" + str(year)
     scad_skyline_object = base_scad - logo_gitlab_scad + user_scad + year_scad
 
     if bars is not None:
         scad_skyline_object += bars
 
-    scad_render_to_file(scad_skyline_object, scad_contributions_filename + '.scad')
+    scad_render_to_file(scad_skyline_object, scad_contributions_filename + ".scad")
 
     subprocess.run(
-        ['openscad', '-o', scad_contributions_filename + '.stl', scad_contributions_filename + '.scad'],
+        ["openscad", "-o", scad_contributions_filename + ".stl", scad_contributions_filename + ".scad"],
         capture_output=True,
     )
 
-    print('Generated STL file ' + scad_contributions_filename + '.stl')
+    logger.info("Generated STL file " + scad_contributions_filename + ".stl")
 
 
 def main():
     parser = argparse.ArgumentParser(
-        prog='gitlab-skyline', description='Create STL from Gitlab contributions', epilog='Enjoy!'
+        prog="gitlab-skyline", description="Create STL from Gitlab contributions", epilog="Enjoy!"
     )
     parser.add_argument(
-        '--domain', metavar=None, type=str, nargs='?', help='GitlabEE/CE custom domain', default='https://gitlab.com'
+        "--domain", metavar=None, type=str, nargs="?", help="GitlabEE/CE custom domain", default="https://gitlab.com"
     )
-    parser.add_argument('username', metavar=None, type=str, help='Gitlab username (without @)')
-    parser.add_argument('year', metavar=None, type=int, help='Year of contributions to fetch', default=datetime.date.today().year, nargs='?')
-
-    parser.add_argument('--token', metavar=None, type=str, nargs='?', help='Personal access token', default=None)
+    parser.add_argument("username", metavar=None, type=str, help="Gitlab username (without @)")
     parser.add_argument(
-        '--max_requests',
+        "year",
         metavar=None,
         type=int,
-        help='Max. simultaneous requests to Gitlab. Don\'t mess with their server!',
+        help="Year of contributions to fetch",
+        default=datetime.datetime.now(tz=datetime.timezone.utc).year,
+        nargs="?",
+    )
+
+    parser.add_argument("--token", metavar=None, type=str, nargs="?", help="Personal access token", default=None)
+    parser.add_argument(
+        "--max_requests",
+        metavar=None,
+        type=int,
+        help='Max. simultaneous requests to Gitlab. Don"t mess with their server!',
         default=2,
-        nargs='?',
+        nargs="?",
     )
 
     args = parser.parse_args()
@@ -203,7 +212,7 @@ def main():
     year = args.year
     contribution_matrix = []
 
-    print('Fetching contributions from Gitlab...')
+    logger.info("Fetching contributions from Gitlab...")
 
     semaphore = asyncio.Semaphore(max_requests)
     loop = asyncio.get_event_loop()
@@ -217,9 +226,9 @@ def main():
     )
     loop.close()
 
-    print('Generating STL...')
+    logger.info("Generating STL...")
     generate_skyline_stl(username, year, contribution_matrix)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
