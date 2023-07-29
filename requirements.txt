@@ -1,2 +1,3 @@
 solidpython2~=2.0.2
 aiohttp~=3.8.5
+requests~=2.31.0

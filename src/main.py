@@ -8,9 +8,11 @@ import math
 import os
 import subprocess
 import sys
+import urllib
 from calendar import monthrange
 
 import aiohttp
+import requests
 from solid2 import cube, import_stl, linear_extrude, polyhedron, rotate, scad_render_to_file, scale, text, translate
 
 __author__ = "Will Ho"
@@ -25,7 +27,15 @@ def _init_logger():
     logger.addHandler(log_handler)
 
 
-async def get_contributions(semaphore, domain, username, token, date, contribution_matrix):
+def get_userid(username: str, domain) -> int:
+    path = f"/api/v4/users?username={username}"
+    url = urllib.parse.urljoin(domain, path)
+    userid = requests.get(url).json()[0]["id"]
+    logger.info(f"User ID for @{username} is {userid}")
+    return userid
+
+
+async def get_contributions(semaphore, domain, userid, token, date, contribution_matrix):
     """Get contributions directly using GitLab events API (asynchronously)"""
 
     headers = {}
@@ -36,7 +46,7 @@ async def get_contributions(semaphore, domain, username, token, date, contributi
         try:
             after = (date - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
             before = (date + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-            url = f"{domain}/api/v4/users/{username}/events?after={after}&before={before}"
+            url = f"{domain}/api/v4/users/{userid}/events?after={after}&before={before}"
             async with semaphore, client.get(url) as response:
                 logger.debug(f"GET: {url}")
                 json = await response.json()
@@ -203,6 +213,7 @@ def main():
     logger.setLevel(args.loglevel.upper())
 
     contribution_matrix = []
+    userid = get_userid(username=args.username, domain=args.domain)
 
     logger.info("Fetching contributions from GitLab...")
 
@@ -211,7 +222,7 @@ def main():
     loop.run_until_complete(
         asyncio.gather(
             *[
-                get_contributions(semaphore, args.domain, args.username, args.token, date, contribution_matrix)
+                get_contributions(semaphore, args.domain, userid, args.token, date, contribution_matrix)
                 for date in all_dates_in_year(args.year)
             ]
         )
