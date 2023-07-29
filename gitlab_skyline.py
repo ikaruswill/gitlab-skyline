@@ -11,8 +11,7 @@ from calendar import monthrange
 import aiohttp
 from solid2 import *
 
-__author__ = "Will Ho"
-
+__author__ = 'Will Ho'
 
 async def get_contributions(semaphore, domain, username, token, date, contribution_matrix):
     """Get contributions directly using Gitlab activities endpoint API (asynchronously)"""
@@ -23,15 +22,15 @@ async def get_contributions(semaphore, domain, username, token, date, contributi
 
     async with aiohttp.ClientSession(raise_for_status=True, headers=headers) as client:
         try:
-            after = (date - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-            before = (date + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-            url = f"{domain}/api/v4/users/{username}/events?after={after}&before={before}"
+            after = (date - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+            before = (date + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+            url = f'{domain}/api/v4/users/{username}/events?after={after}&before={before}'
             async with semaphore, client.get(url) as response:
                 json = await response.json()
                 contribution_matrix.append([int(date.strftime('%j')), int(date.strftime('%u')) - 1, len(json)])
 
         except Exception as err:
-            print(f"Exception occured: {err}")
+            print(f'Exception occured: {err}')
             pass
 
 
@@ -96,7 +95,7 @@ def generate_skyline_stl(username, year, contribution_matrix):
 
     user_scad = rotate([face_angle, 0, 0])(
         translate([base_length / 4, base_height / 2 - base_top_offset / 2, -1.5])(
-            linear_extrude(height=2)(text("@" + username, 5))
+            linear_extrude(height=2)(text('@' + username, 5))
         )
     )
 
@@ -104,7 +103,7 @@ def generate_skyline_stl(username, year, contribution_matrix):
         translate([base_length / 8, base_height / 2 - base_top_offset / 2 - 2, -1])(
             linear_extrude(height=2)(
                 scale([0.09, 0.09, 0.09])(
-                    import_stl(os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "gitlab.svg")
+                    import_stl(os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'gitlab.svg')
                 )
             )
         )
@@ -160,22 +159,22 @@ def generate_skyline_stl(username, year, contribution_matrix):
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="gitlab-skyline", description='Create STL from Gitlab contributions', epilog='Enjoy!'
+        prog='gitlab-skyline', description='Create STL from Gitlab contributions', epilog='Enjoy!'
     )
     parser.add_argument(
-        '--domain', metavar=None, type=str, nargs="?", help='GitlabEE/CE custom domain', default='https://gitlab.com'
+        '--domain', metavar=None, type=str, nargs='?', help='GitlabEE/CE custom domain', default='https://gitlab.com'
     )
     parser.add_argument('username', metavar=None, type=str, help='Gitlab username (without @)')
-    parser.add_argument('year', metavar=None, type=int, help='Year of contributions to fetch', default=2020, nargs="?")
+    parser.add_argument('year', metavar=None, type=int, help='Year of contributions to fetch', default=2020, nargs='?')
 
-    parser.add_argument('--token', metavar=None, type=str, nargs="?", help='Personal access token', default=None)
+    parser.add_argument('--token', metavar=None, type=str, nargs='?', help='Personal access token', default=None)
     parser.add_argument(
         '--max_requests',
         metavar=None,
         type=int,
         help='Max. simultaneous requests to Gitlab. Don\'t mess with their server!',
         default=10,
-        nargs="?",
+        nargs='?',
     )
 
     args = parser.parse_args()
@@ -187,7 +186,7 @@ def main():
     year = args.year
     contribution_matrix = []
 
-    print("Fetching contributions from Gitlab...")
+    print('Fetching contributions from Gitlab...')
 
     semaphore = asyncio.Semaphore(max_requests)
     loop = asyncio.get_event_loop()
@@ -201,7 +200,7 @@ def main():
     )
     loop.close()
 
-    print("Generating STL...")
+    print('Generating STL...')
     generate_skyline_stl(username, year, contribution_matrix)
 
 
