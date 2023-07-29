@@ -10,6 +10,7 @@ import subprocess
 import sys
 import urllib
 from calendar import monthrange
+from typing import Iterator
 
 import aiohttp
 import requests
@@ -58,10 +59,12 @@ async def get_contributions(semaphore, domain, userid, token, date, contribution
             pass
 
 
-def all_dates_in_year(year):
-    for month in range(1, 13):
-        for day in range(1, monthrange(year, month)[1] + 1):
-            yield datetime.datetime(year, month, day, tzinfo=datetime.timezone.utc)
+def all_dates_in_year(year: int) -> Iterator[datetime.date]:
+    start_date = datetime.date(year, 1, 1)
+    end_date = datetime.date(year, 12, 31)
+    num_days = (end_date - start_date + datetime.timedelta(days=1)).days
+    for n in range(num_days):
+        yield start_date + datetime.timedelta(days=n)
 
 
 def parse_contribution_matrix(contribution_matrix):
