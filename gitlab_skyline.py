@@ -4,13 +4,12 @@ import argparse
 import asyncio
 import datetime
 import math
+import os
 import subprocess
 from calendar import monthrange
 
 import aiohttp
-from solid import *
-from solid.utils import *
-import os
+from solid2 import *
 
 __author__ = "Will Ho"
 
@@ -193,8 +192,8 @@ def main():
     semaphore = asyncio.Semaphore(max_requests)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(
-        asyncio.wait(
-            [
+        asyncio.gather(
+            *[
                 get_contributions(semaphore, domain, username, token, date, contribution_matrix)
                 for date in all_dates_in_year(year)
             ]

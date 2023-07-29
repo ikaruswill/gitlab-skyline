@@ -1,2 +1,2 @@
-solidpython~=1.0.5
-aiohttp~=3.7.3
+solidpython2~=2.0.2
+aiohttp~=3.8.5
