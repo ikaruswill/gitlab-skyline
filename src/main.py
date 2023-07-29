@@ -68,7 +68,7 @@ async def get_contributions(
 
 def get_dates_in_year(year: int) -> List[datetime.date]:
     start_date = datetime.date(year, 1, 1)
-    end_date = datetime.date(year + 1, 1, 1)
+    end_date = min(datetime.date(year + 1, 1, 1), datetime.datetime.now(tz=datetime.timezone.utc).date())
     num_days = (end_date - start_date).days
     return [start_date + datetime.timedelta(days=n) for n in range(num_days)]
 
