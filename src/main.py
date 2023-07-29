@@ -11,8 +11,7 @@ import sys
 from calendar import monthrange
 
 import aiohttp
-from solid2 import (cube, import_stl, linear_extrude, polyhedron, rotate,
-                    scad_render_to_file, scale, text, translate)
+from solid2 import cube, import_stl, linear_extrude, polyhedron, rotate, scad_render_to_file, scale, text, translate
 
 __author__ = "Will Ho"
 
@@ -20,7 +19,6 @@ logger = logging.getLogger(__name__)
 
 
 def _init_logger():
-    logger.setLevel(logging.DEBUG)
     log_handler = logging.StreamHandler(sys.stdout)
     log_formatter = logging.Formatter("%(created)f:%(levelname)s:%(name)s:%(module)s:%(message)s")
     log_handler.setFormatter(log_formatter)
@@ -28,7 +26,7 @@ def _init_logger():
 
 
 async def get_contributions(semaphore, domain, username, token, date, contribution_matrix):
-    """Get contributions directly using Gitlab activities endpoint API (asynchronously)"""
+    """Get contributions directly using GitLab events API (asynchronously)"""
 
     headers = {}
     if token:
@@ -50,10 +48,10 @@ async def get_contributions(semaphore, domain, username, token, date, contributi
             pass
 
 
-def all_dates_in_year(year=2020):
+def all_dates_in_year(year):
     for month in range(1, 13):
         for day in range(1, monthrange(year, month)[1] + 1):
-            yield datetime.datetime(year, month, day, tzinfo=datetime.tinmezone.utc)
+            yield datetime.datetime(year, month, day, tzinfo=datetime.timezone.utc)
 
 
 def parse_contribution_matrix(contribution_matrix):
@@ -175,59 +173,53 @@ def generate_skyline_stl(username, year, contribution_matrix):
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="gitlab-skyline", description="Create STL from Gitlab contributions", epilog="Enjoy!"
+        prog="gitlab-skyline",
+        description="Create STL from GitLab contributions",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument(
-        "--domain", metavar=None, type=str, nargs="?", help="GitlabEE/CE custom domain", default="https://gitlab.com"
-    )
-    parser.add_argument("username", metavar=None, type=str, help="Gitlab username (without @)")
+    parser.add_argument("username", type=str, help="GitLab username (without @)")
     parser.add_argument(
         "year",
-        metavar=None,
         type=int,
         help="Year of contributions to fetch",
         default=datetime.datetime.now(tz=datetime.timezone.utc).year,
         nargs="?",
     )
-
-    parser.add_argument("--token", metavar=None, type=str, nargs="?", help="Personal access token", default=None)
+    parser.add_argument("--domain", type=str, nargs="?", help="GitLab custom domain", default="https://gitlab.com")
+    parser.add_argument("--token", type=str, nargs="?", help="Personal access token", default=None)
     parser.add_argument(
-        "--max_requests",
-        metavar=None,
+        "--concurrency",
         type=int,
-        help='Max. simultaneous requests to Gitlab. Don"t mess with their server!',
+        help="Max concurrent requests to GitLab",
         default=2,
         nargs="?",
     )
+    parser.add_argument("--loglevel", type=str, help="Log level", default="INFO")
 
     args = parser.parse_args()
 
     # Set logging
     _init_logger()
+    logger.setLevel(args.loglevel.upper())
 
-    domain = args.domain
-    username = args.username
-    token = args.token
-    max_requests = args.max_requests
-    year = args.year
     contribution_matrix = []
 
-    logger.info("Fetching contributions from Gitlab...")
+    logger.info("Fetching contributions from GitLab...")
 
-    semaphore = asyncio.Semaphore(max_requests)
+    semaphore = asyncio.Semaphore(args.concurrency)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(
         asyncio.gather(
             *[
-                get_contributions(semaphore, domain, username, token, date, contribution_matrix)
-                for date in all_dates_in_year(year)
+                get_contributions(semaphore, args.domain, args.username, args.token, date, contribution_matrix)
+                for date in all_dates_in_year(args.year)
             ]
         )
     )
     loop.close()
 
     logger.info("Generating STL...")
-    generate_skyline_stl(username, year, contribution_matrix)
+    generate_skyline_stl(args.username, args.year, contribution_matrix)
 
 
 if __name__ == "__main__":
