@@ -179,7 +179,7 @@ def main():
         '--domain', metavar=None, type=str, nargs='?', help='GitlabEE/CE custom domain', default='https://gitlab.com'
     )
     parser.add_argument('username', metavar=None, type=str, help='Gitlab username (without @)')
-    parser.add_argument('year', metavar=None, type=int, help='Year of contributions to fetch', default=2020, nargs='?')
+    parser.add_argument('year', metavar=None, type=int, help='Year of contributions to fetch', default=datetime.date.today().year, nargs='?')
 
     parser.add_argument('--token', metavar=None, type=str, nargs='?', help='Personal access token', default=None)
     parser.add_argument(
