@@ -36,7 +36,9 @@ def get_userid(username: str, domain) -> int:
     return userid
 
 
-async def get_contributions(semaphore, domain, userid, token, date, contribution_matrix):
+async def get_contributions(
+    semaphore: asyncio.Semaphore, domain: str, userid: int, token: str, date: datetime.date, contribution_matrix
+):
     """Get contributions directly using GitLab events API (asynchronously)"""
 
     headers = {}
