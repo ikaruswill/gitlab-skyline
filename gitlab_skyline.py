@@ -3,15 +3,27 @@
 import argparse
 import asyncio
 import datetime
+import logging
 import math
 import os
 import subprocess
+import sys
 from calendar import monthrange
 
 import aiohttp
 from solid2 import *
 
 __author__ = 'Will Ho'
+
+logger = logging.getLogger(__name__)
+
+def _init_logger():
+    logger.setLevel(logging.DEBUG)
+    log_handler = logging.StreamHandler(sys.stdout)
+    log_formatter = logging.Formatter('%(created)f:%(levelname)s:%(name)s:%(module)s:%(message)s')
+    log_handler.setFormatter(log_formatter)
+    logger.addHandler(log_handler)
+
 
 async def get_contributions(semaphore, domain, username, token, date, contribution_matrix):
     """Get contributions directly using Gitlab activities endpoint API (asynchronously)"""
@@ -26,7 +38,9 @@ async def get_contributions(semaphore, domain, username, token, date, contributi
             before = (date + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
             url = f'{domain}/api/v4/users/{username}/events?after={after}&before={before}'
             async with semaphore, client.get(url) as response:
+                logger.debug(f'GET: {url}')
                 json = await response.json()
+                logger.debug(f'RESPONSE: {json}')
                 contribution_matrix.append([int(date.strftime('%j')), int(date.strftime('%u')) - 1, len(json)])
 
         except Exception as err:
@@ -178,6 +192,9 @@ def main():
     )
 
     args = parser.parse_args()
+
+    # Set logging
+    _init_logger()
 
     domain = args.domain
     username = args.username
