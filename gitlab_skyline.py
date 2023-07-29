@@ -187,7 +187,7 @@ def main():
         metavar=None,
         type=int,
         help='Max. simultaneous requests to Gitlab. Don\'t mess with their server!',
-        default=10,
+        default=2,
         nargs='?',
     )
 
