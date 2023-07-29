@@ -9,8 +9,7 @@ import os
 import subprocess
 import sys
 import urllib
-from calendar import monthrange
-from typing import Iterator
+from typing import List
 
 import aiohttp
 import requests
@@ -31,13 +30,18 @@ def _init_logger():
 def get_userid(username: str, domain) -> int:
     path = f"/api/v4/users?username={username}"
     url = urllib.parse.urljoin(domain, path)
-    userid = requests.get(url).json()[0]["id"]
+    userid = requests.get(url, timeout=30).json()[0]["id"]
     logger.info(f"User ID for @{username} is {userid}")
     return userid
 
 
 async def get_contributions(
-    semaphore: asyncio.Semaphore, domain: str, userid: int, token: str, date: datetime.date, contribution_matrix
+    semaphore: asyncio.Semaphore,
+    domain: str,
+    userid: int,
+    token: str,
+    date: datetime.date,
+    contribution_list: List[int],
 ):
     """Get contributions directly using GitLab events API (asynchronously)"""
 
@@ -55,35 +59,30 @@ async def get_contributions(
                 logger.debug(f"GET: {url}")
                 json = await response.json()
                 logger.debug(f"RESPONSE: {json}")
-                contribution_matrix.append([int(date.strftime("%j")), int(date.strftime("%u")) - 1, len(json)])
+                contribution_list[int(date.strftime("%j")) - 1] = len(json)
 
         except Exception as err:
             logger.error(f"Exception occured: {err}")
             pass
 
 
-def all_dates_in_year(year: int) -> Iterator[datetime.date]:
+def get_dates_in_year(year: int) -> List[datetime.date]:
     start_date = datetime.date(year, 1, 1)
-    end_date = datetime.date(year, 12, 31)
-    num_days = (end_date - start_date + datetime.timedelta(days=1)).days
-    for n in range(num_days):
-        yield start_date + datetime.timedelta(days=n)
+    end_date = datetime.date(year + 1, 1, 1)
+    num_days = (end_date - start_date).days
+    return [start_date + datetime.timedelta(days=n) for n in range(num_days)]
 
 
-def parse_contribution_matrix(contribution_matrix):
-    day_offset = sorted(contribution_matrix, key=lambda x: x[0])[0][1]
-    max_contributions_by_day = sorted(contribution_matrix, key=lambda x: x[2], reverse=True)[0][2]
-    ordered_contribution_matrix = sorted(contribution_matrix, key=lambda x: x[0])
-    year_contribution_list = [row.pop(2) for row in ordered_contribution_matrix]
-
-    for _i in range(day_offset):
-        year_contribution_list.insert(0, 0)
-
-    return [year_contribution_list, max_contributions_by_day]
+def init_contribution_list(all_dates: List[datetime.date]) -> List[int]:
+    first_date = all_dates[0]
+    last_date = all_dates[-1]
+    before_week_days = first_date.isoweekday() % 7  # Sun = 0, Mon = 1
+    after_week_days = 7 - last_date.isoweekday() % 7 + 1  # Sun = 6, Mon = 5
+    return [0] * before_week_days + [0] * len(all_dates) + [0] * after_week_days
 
 
-def generate_skyline_stl(username, year, contribution_matrix):
-    year_contribution_list, max_contributions_by_day = parse_contribution_matrix(contribution_matrix)
+def generate_skyline_stl(username, year, contribution_list):
+    max_contributions = max(contribution_list)
 
     base_top_width = 23
     base_width = 30
@@ -92,6 +91,7 @@ def generate_skyline_stl(username, year, contribution_matrix):
     max_length_contributionbar = 20
     bar_base_dimension = 2.5
 
+    # Build base
     base_top_offset = (base_width - base_top_width) / 2
     face_angle = math.degrees(math.atan(base_height / base_top_offset))
 
@@ -139,15 +139,16 @@ def generate_skyline_stl(username, year, contribution_matrix):
         )
     )
 
+    # Build bars
     bars = None
 
     week_number = 1
-    for i in range(len(year_contribution_list)):
+    for i in range(len(contribution_list)):
         day_number = i % 7
         if day_number == 0:
             week_number += 1
 
-        if year_contribution_list[i] == 0:
+        if contribution_list[i] == 0:
             continue
 
         bar = translate(
@@ -161,7 +162,7 @@ def generate_skyline_stl(username, year, contribution_matrix):
                 [
                     bar_base_dimension,
                     bar_base_dimension,
-                    year_contribution_list[i] * max_length_contributionbar / max_contributions_by_day,
+                    contribution_list[i] * max_length_contributionbar / max_contributions,
                 ]
             )
         )
@@ -218,7 +219,8 @@ def main():
     _init_logger()
     logger.setLevel(args.loglevel.upper())
 
-    contribution_matrix = []
+    all_dates = get_dates_in_year(args.year)
+    contribution_list = init_contribution_list(all_dates)
     userid = get_userid(username=args.username, domain=args.domain)
 
     logger.info("Fetching contributions from GitLab...")
@@ -228,15 +230,15 @@ def main():
     loop.run_until_complete(
         asyncio.gather(
             *[
-                get_contributions(semaphore, args.domain, userid, args.token, date, contribution_matrix)
-                for date in all_dates_in_year(args.year)
+                get_contributions(semaphore, args.domain, userid, args.token, date, contribution_list)
+                for date in all_dates
             ]
         )
     )
     loop.close()
 
     logger.info("Generating STL...")
-    generate_skyline_stl(args.username, args.year, contribution_matrix)
+    generate_skyline_stl(args.username, args.year, contribution_list)
 
 
 if __name__ == "__main__":
