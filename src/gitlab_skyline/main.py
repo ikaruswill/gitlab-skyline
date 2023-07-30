@@ -272,9 +272,7 @@ def main():
         nargs="?",
     )
     parser.add_argument("-o", "--output", type=Path, help="Output path", default=Path.cwd())
-    parser.add_argument(
-        "--stl", help="Export an STL file as well (Requires openscad binary)", action="store_true"
-    )
+    parser.add_argument("--stl", help="Export an STL file as well (Requires openscad binary)", action="store_true")
     parser.add_argument("--domain", type=str, help="GitLab custom domain", default="https://gitlab.com")
     parser.add_argument("--token", type=str, help="Personal access token", default=None)
     parser.add_argument(
