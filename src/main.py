@@ -189,6 +189,32 @@ def generate_skyline_stl(username, year, contribution_list):
 
 
 def main():
+    _init_logger()
+    logger.setLevel(args.loglevel.upper())
+    
+    contribution_list = []
+    all_dates = get_dates_in_year(args.year)
+    userid = get_userid(username=args.username, domain=args.domain)
+
+    logger.info("Fetching contributions from GitLab...")
+
+    semaphore = asyncio.Semaphore(args.concurrency)
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(
+        asyncio.gather(
+            *[
+                get_contributions(semaphore, args.domain, userid, args.token, date, contribution_list)
+                for date in all_dates
+            ]
+        )
+    )
+    loop.close()
+
+    logger.info("Generating STL...")
+    generate_skyline_stl(args.username, args.year, contribution_list)
+
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         prog="gitlab-skyline",
         description="Create STL from GitLab contributions",
@@ -215,31 +241,4 @@ def main():
 
     args = parser.parse_args()
 
-    # Set logging
-    _init_logger()
-    logger.setLevel(args.loglevel.upper())
-
-    all_dates = get_dates_in_year(args.year)
-    contribution_list = init_contribution_list(all_dates)
-    userid = get_userid(username=args.username, domain=args.domain)
-
-    logger.info("Fetching contributions from GitLab...")
-
-    semaphore = asyncio.Semaphore(args.concurrency)
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(
-        asyncio.gather(
-            *[
-                get_contributions(semaphore, args.domain, userid, args.token, date, contribution_list)
-                for date in all_dates
-            ]
-        )
-    )
-    loop.close()
-
-    logger.info("Generating STL...")
-    generate_skyline_stl(args.username, args.year, contribution_list)
-
-
-if __name__ == "__main__":
     main()
