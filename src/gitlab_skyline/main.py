@@ -131,17 +131,18 @@ def generate_skyline_stl(contribution_counts: List[int], username: str, year: in
     """Generate SCAD model of contributions"""
     max_contributions = max(contribution_counts)
 
-    base_top_width = 23
+    # Parameters
+    base_top_offset = 3.5
     base_width = 30
     base_length = 150
     base_height = 10
-    max_length_contributionbar = 20
     bar_base_dimension = 2.5
+    bar_max_height = 20
+
+    # Derived parameters
+    base_face_angle = math.degrees(math.atan(base_height / base_top_offset))
 
     # Build base
-    base_top_offset = (base_width - base_top_width) / 2
-    face_angle = math.degrees(math.atan(base_height / base_top_offset))
-
     base_points = [
         [0, 0, 0],
         [base_length, 0, 0],
@@ -164,23 +165,24 @@ def generate_skyline_stl(contribution_counts: List[int], username: str, year: in
 
     base_scad = polyhedron(points=base_points, faces=base_faces)
 
-    year_scad = rotate([face_angle, 0, 0])(
+    year_scad = rotate([base_face_angle, 0, 0])(
         translate([base_length - base_length / 5, base_height / 2 - base_top_offset / 2 - 1, -1.5])(
             linear_extrude(height=2)(text(str(year), 6))
         )
     )
 
-    user_scad = rotate([face_angle, 0, 0])(
+    user_scad = rotate([base_face_angle, 0, 0])(
         translate([base_length / 4, base_height / 2 - base_top_offset / 2, -1.5])(
             linear_extrude(height=2)(text("@" + username, 5))
         )
     )
 
     script_path = Path(__file__).parent.absolute()
+    logo_path = script_path / "gitlab.svg"
 
-    logo_scad = rotate([face_angle, 0, 0])(
+    logo_scad = rotate([base_face_angle, 0, 0])(
         translate([base_length / 8, base_height / 2 - base_top_offset / 2 - 2, -1])(
-            linear_extrude(height=2)(scale([0.09, 0.09, 0.09])(import_stl(str(script_path / "gitlab.svg"))))
+            linear_extrude(height=2)(scale([0.09, 0.09, 0.09])(import_stl(str(logo_path))))
         )
     )
 
@@ -207,7 +209,7 @@ def generate_skyline_stl(contribution_counts: List[int], username: str, year: in
                 [
                     bar_base_dimension,
                     bar_base_dimension,
-                    contribution_counts[i] * max_length_contributionbar / max_contributions,
+                    contribution_counts[i] / max_contributions * bar_max_height 
                 ]
             )
         )
@@ -293,7 +295,7 @@ def main():
     )
     logger.debug(f"Padded contribution counts: {contribution_counts}")
 
-    logger.info("Generating Model...")
+    logger.info("Generating model...")
     model = generate_skyline_stl(contribution_counts=contribution_counts, username=args.username, year=args.year)
 
     logger.info("Rendering models to file...")
