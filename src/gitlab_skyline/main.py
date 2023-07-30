@@ -223,6 +223,34 @@ def render_stl(scad_path: Path, path: Path):
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        prog="gitlab-skyline",
+        description="Create OpenSCAD [and STL] models from GitLab contributions",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument("username", type=str, help="GitLab username (without @)")
+    parser.add_argument(
+        "year",
+        type=int,
+        help="Year of contributions to fetch",
+        default=datetime.datetime.now(tz=datetime.timezone.utc).year,
+    )
+    parser.add_argument("-o", "--output", type=Path, help="Output path", default=Path.cwd())
+    parser.add_argument(
+        "--stl", type=bool, help="Export an STL file as well (Requires openscad binary)", action="store_true"
+    )
+    parser.add_argument("--domain", type=str, help="GitLab custom domain", default="https://gitlab.com")
+    parser.add_argument("--token", type=str, help="Personal access token", default=None)
+    parser.add_argument(
+        "--concurrency",
+        type=int,
+        help="Max concurrent requests to GitLab",
+        default=2,
+    )
+    parser.add_argument("--loglevel", type=str, help="Log level", default="INFO")
+
+    args = parser.parse_args()
+
     _init_logger()
     logger.setLevel(args.loglevel.upper())
 
@@ -270,32 +298,4 @@ def main():
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        prog="gitlab-skyline",
-        description="Create OpenSCAD [and STL] models from GitLab contributions",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    parser.add_argument("username", type=str, help="GitLab username (without @)")
-    parser.add_argument(
-        "year",
-        type=int,
-        help="Year of contributions to fetch",
-        default=datetime.datetime.now(tz=datetime.timezone.utc).year,
-    )
-    parser.add_argument("-o", "--output", type=Path, help="Output path", default=Path.cwd())
-    parser.add_argument(
-        "--stl", type=bool, help="Export an STL file as well (Requires openscad binary)", action="store_true"
-    )
-    parser.add_argument("--domain", type=str, help="GitLab custom domain", default="https://gitlab.com")
-    parser.add_argument("--token", type=str, help="Personal access token", default=None)
-    parser.add_argument(
-        "--concurrency",
-        type=int,
-        help="Max concurrent requests to GitLab",
-        default=2,
-    )
-    parser.add_argument("--loglevel", type=str, help="Log level", default="INFO")
-
-    args = parser.parse_args()
-
     main()
