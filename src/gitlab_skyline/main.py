@@ -138,7 +138,6 @@ def generate_skyline_stl(contribution_counts: List[int], username: str, year: in
     # Parameters
     base_top_offset = 3.5
     base_width = 30
-    base_length = 150
     base_height = 10
     bar_base_dimension = 2.5
     bar_max_height = 20
@@ -146,7 +145,12 @@ def generate_skyline_stl(contribution_counts: List[int], username: str, year: in
     bar_w_margin = 2.5
 
     # Derived parameters
+    num_columns = len(contribution_counts) / 7
+    base_length = num_columns * bar_base_dimension + 2 * bar_l_margin + 2 * base_top_offset
     base_face_angle = math.degrees(math.atan(base_height / base_top_offset))
+
+    if base_length < 90:
+        logger.warning("Base length is less than 90mm, model may have issues. Check and adjust SCAD file.")
 
     # Build base
     base_points = [
