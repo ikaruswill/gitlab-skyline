@@ -80,8 +80,12 @@ def pad_contribution_counts_weekdays(
     """Ensure that data starts with a Sunday and ends with a Saturday"""
     pad_left_days = first_date.isoweekday() % 7  # Sun = 0, Mon = 1
     pad_right_days = 7 - last_date.isoweekday() % 7 + 1  # Sun = 6, Mon = 5
+    logger.debug(f"Left weekdays to pad: {pad_left_days}")
+    logger.debug(f"Right weekdays to pad: {pad_right_days}")
     left_padding = [0] * pad_left_days
     right_padding = [0] * pad_right_days
+    logger.debug(f"Left padding: {left_padding}")
+    logger.debug(f"Right padding: {right_padding}")
     return left_padding + ordered_contribution_counts + right_padding
 
 
@@ -229,9 +233,11 @@ def main():
     loop.close()
 
     ordered_contribution_counts = date_contributions_to_ordered_counts(date_contributions=date_contributions)
+    logger.debug(f"Ordered contribution counts {ordered_contribution_counts}")
     contribution_counts = pad_contribution_counts_weekdays(
         ordered_contribution_counts=ordered_contribution_counts, first_date=all_dates[0], last_date=all_dates[1]
     )
+    logger.debug(f"Padded contribution counts: {contribution_counts}")
 
     logger.info("Generating STL...")
     generate_skyline_stl(contribution_counts=contribution_counts, username=args.username, year=args.year)
