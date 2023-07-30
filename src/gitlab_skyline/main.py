@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import argparse
 import asyncio
 import datetime
@@ -190,7 +188,7 @@ def generate_skyline_stl(username: str, year: int, contribution_counts: List[int
 
     if bars is not None:
         scad_skyline_object += bars
-    
+
     output_filename = f"gitlab_{username}_{year}"
     scad_render_to_file(scad_skyline_object, f"{output_filename}.scad")
 
