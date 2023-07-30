@@ -198,14 +198,22 @@ def generate_skyline_stl(contribution_counts: List[int], username: str, year: in
         scad_skyline_object += bars
 
     output_filename = f"gitlab_{username}_{year}"
-    scad_render_to_file(scad_skyline_object, f"{output_filename}.scad")
+    scad_ext = ".scad"
+    stl_ext = ".stl"
 
-    subprocess.run(
-        ["openscad", "-o", f"{output_filename}.stl", f"{output_filename}.scad"],
-        capture_output=True,
-    )
-
-    logger.info(f"Generated STL file: {output_filename}.stl ")
+    scad_render_to_file(scad_skyline_object, f"{output_filename}{scad_ext}")
+    logger.info(f"Generated SCAD file: {output_filename}{scad_ext} ")
+    try:
+        subprocess.run(
+            ["openscad", "-o", f"{output_filename}{stl_ext}", f"{output_filename}{scad_ext}"],
+            capture_output=True,
+        )
+        logger.info(f"Generated STL file: {output_filename}{stl_ext} ")
+    except FileNotFoundError:
+        logger.error("'openscad' binary not found, is OpenSCAD installed?")
+        logger.error(
+            "Unable to generate STL file, you may export the STL manually by opening the generated SCAD file in OpenSCAD"
+        )
 
 
 def main():
