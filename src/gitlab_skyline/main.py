@@ -89,7 +89,7 @@ def date_contributions_to_ordered_counts(date_contributions: List[Tuple[str, int
     """Sort by date and remove date from contributions"""
     sorted_date_contributions = sorted(date_contributions, key=operator.itemgetter(0))
     _, counts = list(zip(*sorted_date_contributions))
-    return counts
+    return list(counts)
 
 
 def generate_skyline_stl(contribution_counts: List[int], username: str, year: int):
