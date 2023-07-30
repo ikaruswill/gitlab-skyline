@@ -202,22 +202,23 @@ def generate_skyline_stl(contribution_counts: List[int], username: str, year: in
     return scad_skyline_object
 
 
-def export_scad(model: solid2.union, output_path: Path):
-    scad_render_to_file(model, str(output_path.absolute()))
-    logger.info(f"Generated SCAD file: {output_path}")
+def render_scad(model: solid2.union, path: Path):
+    scad_render_to_file(model, filename=path.name, out_dir=str(path.parent))
+    logger.info(f"Generated SCAD file: {path}")
 
 
-def export_stl(output_path: Path, scad_path: Path):
+def render_stl(scad_path: Path, path: Path):
     try:
         subprocess.run(
-            ["openscad", "-o", str(output_path), str(scad_path)],
+            ["openscad", "-o", str(path), str(scad_path)],
             capture_output=True,
         )
-        logger.info(f"Generated STL file: {output_path}")
+        logger.info(f"Generated STL file: {path}")
     except FileNotFoundError:
         logger.error("'openscad' binary not found, is OpenSCAD installed?")
         logger.error(
-            "Unable to generate STL file, you may export the STL manually by opening the generated SCAD file in OpenSCAD"
+            "Unable to generate STL file, "
+            "you may export the STL manually by opening the generated SCAD file in OpenSCAD"
         )
 
 
@@ -259,18 +260,19 @@ def main():
     logger.info("Generating Model...")
     model = generate_skyline_stl(contribution_counts=contribution_counts, username=args.username, year=args.year)
 
-    logger.info("Exporting SCAD model")
+    logger.info("Rendering models to file...")
     output_filename = f"gitlab_{args.username}_{args.year}"
     scad_path = args.output / f"{output_filename}.scad"
     stl_path = args.output / f"{output_filename}.stl"
-    export_scad(model=model, path=scad_path)
-    export_stl(model=model, path=stl_path)
+    render_scad(model=model, path=scad_path)
+    if args.stl:
+        render_stl(scad_path=scad_path, path=stl_path)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         prog="gitlab-skyline",
-        description="Create STL from GitLab contributions",
+        description="Create OpenSCAD [and STL] models from GitLab contributions",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("username", type=str, help="GitLab username (without @)")
@@ -281,6 +283,9 @@ if __name__ == "__main__":
         default=datetime.datetime.now(tz=datetime.timezone.utc).year,
     )
     parser.add_argument("-o", "--output", type=Path, help="Output path", default=Path.cwd())
+    parser.add_argument(
+        "--stl", type=bool, help="Export an STL file as well (Requires openscad binary)", action="store_true"
+    )
     parser.add_argument("--domain", type=str, help="GitLab custom domain", default="https://gitlab.com")
     parser.add_argument("--token", type=str, help="Personal access token", default=None)
     parser.add_argument(
