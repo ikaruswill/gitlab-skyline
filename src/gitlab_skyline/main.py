@@ -142,6 +142,8 @@ def generate_skyline_stl(contribution_counts: List[int], username: str, year: in
     base_height = 10
     bar_base_dimension = 2.5
     bar_max_height = 20
+    bar_l_margin = 2.5
+    bar_w_margin = 2.5
 
     # Derived parameters
     base_face_angle = math.degrees(math.atan(base_height / base_top_offset))
@@ -193,35 +195,35 @@ def generate_skyline_stl(contribution_counts: List[int], username: str, year: in
     # Build bars
     bars = None
 
-    week_number = 1
+    week_number = 0
+    last_weekday = 6 # Saturday
     for i in range(len(contribution_counts)):
         day_number = i % 7
-        if day_number == 0:
-            week_number += 1
 
-        if contribution_counts[i] == 0:
-            continue
-
-        bar = translate(
-            [
-                base_top_offset + 2.5 + (week_number - 1) * bar_base_dimension,
-                base_top_offset + 2.5 + day_number * bar_base_dimension,
-                base_height,
-            ]
-        )(
-            cube(
+        if contribution_counts[i] != 0:
+            bar = translate(
                 [
-                    bar_base_dimension,
-                    bar_base_dimension,
-                    contribution_counts[i] / max_contributions * bar_max_height 
+                    base_top_offset + bar_l_margin + week_number * bar_base_dimension,
+                    base_top_offset + bar_w_margin + day_number * bar_base_dimension,
+                    base_height,
                 ]
+            )(
+                cube(
+                    [
+                        bar_base_dimension,
+                        bar_base_dimension,
+                        contribution_counts[i] / max_contributions * bar_max_height,
+                    ]
+                )
             )
-        )
 
-        if bars is None:
-            bars = bar
-        else:
-            bars += bar
+            if bars is None:
+                bars = bar
+            else:
+                bars += bar
+
+        if day_number == last_weekday:
+            week_number += 1
 
     scad_skyline_object = base_scad - logo_scad + user_scad + year_scad
 
