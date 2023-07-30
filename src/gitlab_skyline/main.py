@@ -75,14 +75,14 @@ def get_dates_in_year(year: int) -> List[datetime.date]:
 
 
 def pad_contribution_counts_weekdays(
-    contribution_counts: List[int], first_date: datetime.date, last_date: datetime.date
+    ordered_contribution_counts: List[int], first_date: datetime.date, last_date: datetime.date
 ) -> List[int]:
     """Ensure that data starts with a Sunday and ends with a Saturday"""
     pad_left_days = first_date.isoweekday() % 7  # Sun = 0, Mon = 1
     pad_right_days = 7 - last_date.isoweekday() % 7 + 1  # Sun = 6, Mon = 5
     left_padding = [0] * pad_left_days
     right_padding = [0] * pad_right_days
-    return left_padding + contribution_counts + right_padding
+    return left_padding + ordered_contribution_counts + right_padding
 
 
 def date_contributions_to_ordered_counts(date_contributions: List[Tuple[str, int]]) -> List[int]:
@@ -221,8 +221,10 @@ def main():
     )
     loop.close()
 
-    contribution_counts = date_contributions_to_ordered_counts(date_contributions)
-    contribution_counts = pad_contribution_counts_weekdays(contribution_counts)
+    ordered_contribution_counts = date_contributions_to_ordered_counts(date_contributions=date_contributions)
+    contribution_counts = pad_contribution_counts_weekdays(
+        ordered_contribution_counts=ordered_contribution_counts, first_date=all_dates[0], last_date=all_dates[1]
+    )
 
     logger.info("Generating STL...")
     generate_skyline_stl(args.username, args.year, contribution_counts)
