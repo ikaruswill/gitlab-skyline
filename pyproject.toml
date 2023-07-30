@@ -36,7 +36,7 @@ Issues = "https://github.com/ikaruswill/gitlab-skyline/issues"
 Source = "https://github.com/ikaruswill/gitlab-skyline"
 
 [project.scripts]
-gitlab-skyline = "main:main"
+gitlab-skyline = "gitlab_skyline.main:main"
 
 [tool.hatch.version]
 path = "src/gitlab_skyline/__about__.py"
