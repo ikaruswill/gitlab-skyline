@@ -203,12 +203,14 @@ def generate_skyline_stl(contribution_counts: List[int], username: str, year: in
     last_weekday = 6  # Saturday
     for i in range(len(contribution_counts)):
         day_number = i % 7
+        bar_x_factor = week_number
+        bar_y_factor = 6 - day_number
 
         if contribution_counts[i] != 0:
             bar = translate(
                 [
-                    base_top_offset + bar_l_margin + week_number * bar_base_dimension,
-                    base_top_offset + bar_w_margin + day_number * bar_base_dimension,
+                    base_top_offset + bar_l_margin + bar_x_factor * bar_base_dimension,
+                    base_top_offset + bar_w_margin + bar_y_factor * bar_base_dimension,
                     base_height,
                 ]
             )(
