@@ -186,20 +186,20 @@ def generate_skyline_stl(username: str, year: int, contribution_counts: List[int
         else:
             bars += bar
 
-    scad_contributions_filename = "gitlab_" + username + "_" + str(year)
     scad_skyline_object = base_scad - logo_gitlab_scad + user_scad + year_scad
 
     if bars is not None:
         scad_skyline_object += bars
-
-    scad_render_to_file(scad_skyline_object, scad_contributions_filename + ".scad")
+    
+    output_filename = f"gitlab_{username}_{year}"
+    scad_render_to_file(scad_skyline_object, f"{output_filename}.scad")
 
     subprocess.run(
-        ["openscad", "-o", scad_contributions_filename + ".stl", scad_contributions_filename + ".scad"],
+        ["openscad", "-o", f"{output_filename}.stl", f"{output_filename}.scad"],
         capture_output=True,
     )
 
-    logger.info("Generated STL file " + scad_contributions_filename + ".stl")
+    logger.info(f"Generated STL file: {output_filename}.stl ")
 
 
 def main():
