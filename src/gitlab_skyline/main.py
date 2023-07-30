@@ -37,7 +37,33 @@ def get_userid(username: str, domain) -> int:
     return userid
 
 
-async def get_contributions(
+def get_contributions(
+    userid: int, dates: List[datetime.date], domain: str, token: str, concurrency: int
+) -> List[Tuple[str, int]]:
+    """Get contributions for User ID"""
+    date_contributions = []
+    semaphore = asyncio.Semaphore(concurrency)
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(
+        asyncio.gather(
+            *[
+                get_contributions_for_date(
+                    semaphore=semaphore,
+                    domain=domain,
+                    userid=userid,
+                    token=token,
+                    date=date,
+                    date_contributions=date_contributions,
+                )
+                for date in dates
+            ]
+        )
+    )
+    loop.close()
+    return date_contributions
+
+
+async def get_contributions_for_date(
     semaphore: asyncio.Semaphore,
     domain: str,
     userid: int,
@@ -45,7 +71,7 @@ async def get_contributions(
     date: datetime.date,
     date_contributions: List[Tuple[str, int]],
 ):
-    """Get contributions directly using GitLab events API (asynchronously)"""
+    """Get contributions (async) for User ID on a specific date using GitLab events API"""
 
     headers = {}
     if token:
@@ -254,34 +280,18 @@ def main():
     _init_logger()
     logger.setLevel(args.loglevel.upper())
 
-    all_dates = get_dates_in_year(year=args.year)
+    dates = get_dates_in_year(year=args.year)
     userid = get_userid(username=args.username, domain=args.domain)
 
-    date_contributions = []
     logger.info("Fetching contributions from GitLab...")
-    semaphore = asyncio.Semaphore(args.concurrency)
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(
-        asyncio.gather(
-            *[
-                get_contributions(
-                    semaphore=semaphore,
-                    domain=args.domain,
-                    userid=userid,
-                    token=args.token,
-                    date=date,
-                    date_contributions=date_contributions,
-                )
-                for date in all_dates
-            ]
-        )
+    date_contributions = get_contributions(
+        userid=userid, dates=dates, domain=args.domain, token=args.token, concurrency=args.concurrency
     )
-    loop.close()
 
     ordered_contribution_counts = date_contributions_to_ordered_counts(date_contributions=date_contributions)
     logger.debug(f"Ordered contribution counts {ordered_contribution_counts}")
     contribution_counts = pad_contribution_counts_weekdays(
-        ordered_contribution_counts=ordered_contribution_counts, first_date=all_dates[0], last_date=all_dates[-1]
+        ordered_contribution_counts=ordered_contribution_counts, first_date=dates[0], last_date=dates[-1]
     )
     logger.debug(f"Padded contribution counts: {contribution_counts}")
 
