@@ -78,8 +78,12 @@ def pad_contribution_counts_weekdays(
     ordered_contribution_counts: List[int], first_date: datetime.date, last_date: datetime.date
 ) -> List[int]:
     """Ensure that data starts with a Sunday and ends with a Saturday"""
-    pad_left_days = first_date.isoweekday() % 7  # Sun = 0, Mon = 1
-    pad_right_days = 7 - last_date.isoweekday() % 7 + 1  # Sun = 6, Mon = 5
+    logger.debug(f"First date: {first_date.strftime('%Y-%m-%d')}")
+    logger.debug(f"Last date: {last_date.strftime('%Y-%m-%d')}")
+    # Sun = 0, Mon = 1, Tue = 2, Wed = 3, Thu = 4, Fri = 5, Sat = 6
+    pad_left_days = first_date.isoweekday() % 7
+    # Sun = 6, Mon = 5, Tue = 4, Wed = 3, Thu = 2, Fri = 1, Sat = 0
+    pad_right_days = 6 - last_date.isoweekday() % 7
     logger.debug(f"Left weekdays to pad: {pad_left_days}")
     logger.debug(f"Right weekdays to pad: {pad_right_days}")
     left_padding = [0] * pad_left_days
