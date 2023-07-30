@@ -235,7 +235,7 @@ def main():
     ordered_contribution_counts = date_contributions_to_ordered_counts(date_contributions=date_contributions)
     logger.debug(f"Ordered contribution counts {ordered_contribution_counts}")
     contribution_counts = pad_contribution_counts_weekdays(
-        ordered_contribution_counts=ordered_contribution_counts, first_date=all_dates[0], last_date=all_dates[1]
+        ordered_contribution_counts=ordered_contribution_counts, first_date=all_dates[0], last_date=all_dates[-1]
     )
     logger.debug(f"Padded contribution counts: {contribution_counts}")
 
