@@ -71,7 +71,7 @@ async def get_contributions_for_date(
     date_contributions: List[Tuple[str, int]],
 ):
     """Get contributions (async) for User ID on a specific date using GitLab events API"""
-
+    logger.info(f"Getting contributions for: {date}")
     headers = {}
     if token:
         headers["PRIVATE-TOKEN"] = token
@@ -134,7 +134,7 @@ def generate_skyline_stl(contribution_counts: List[int], username: str, year: in
         raise ValueError(msg)
 
     max_contributions = max(contribution_counts)
-
+    base_length_warn_threshold = 100
     # Parameters
     base_top_offset = 3.5
     base_width = 30
@@ -149,8 +149,11 @@ def generate_skyline_stl(contribution_counts: List[int], username: str, year: in
     base_length = num_columns * bar_base_dimension + 2 * bar_l_margin + 2 * base_top_offset
     base_face_angle = math.degrees(math.atan(base_height / base_top_offset))
 
-    if base_length < 90:
-        logger.warning("Base length is less than 90mm, model may have issues. Check and adjust SCAD file.")
+    if base_length < base_length_warn_threshold:
+        logger.warning(
+            f"Base length is less than {base_length_warn_threshold}mm, model may have issues." 
+            "Check and adjust SCAD file."
+        )
 
     # Build base
     base_points = [
@@ -200,7 +203,7 @@ def generate_skyline_stl(contribution_counts: List[int], username: str, year: in
     bars = None
 
     week_number = 0
-    last_weekday = 6 # Saturday
+    last_weekday = 6  # Saturday
     for i in range(len(contribution_counts)):
         day_number = i % 7
 
