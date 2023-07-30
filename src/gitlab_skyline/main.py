@@ -257,6 +257,7 @@ def main():
         type=int,
         help="Year of contributions to fetch",
         default=datetime.datetime.now(tz=datetime.timezone.utc).year,
+        nargs="?",
     )
     parser.add_argument("-o", "--output", type=Path, help="Output path", default=Path.cwd())
     parser.add_argument(
