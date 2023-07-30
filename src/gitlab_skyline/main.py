@@ -129,6 +129,10 @@ def date_contributions_to_ordered_counts(date_contributions: List[Tuple[str, int
 
 def generate_skyline_stl(contribution_counts: List[int], username: str, year: int) -> solid2.union:
     """Generate SCAD model of contributions"""
+    if len(contribution_counts) % 7 > 0:
+        msg = "Number of conributions is not perfectly divisible by 7, check that padding is applied correctly"
+        raise ValueError(msg)
+
     max_contributions = max(contribution_counts)
 
     # Parameters
