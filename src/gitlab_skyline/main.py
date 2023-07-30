@@ -8,10 +8,12 @@ import os
 import subprocess
 import sys
 import urllib
+from pathlib import Path
 from typing import List, Tuple
 
 import aiohttp
 import requests
+import solid2
 from solid2 import cube, import_stl, linear_extrude, polyhedron, rotate, scad_render_to_file, scale, text, translate
 
 __author__ = "Will Ho"
@@ -100,7 +102,7 @@ def date_contributions_to_ordered_counts(date_contributions: List[Tuple[str, int
     return list(counts)
 
 
-def generate_skyline_stl(contribution_counts: List[int], username: str, year: int):
+def generate_skyline_stl(contribution_counts: List[int], username: str, year: int) -> solid2.union:
     """Generate SCAD model of contributions"""
     max_contributions = max(contribution_counts)
 
@@ -197,18 +199,21 @@ def generate_skyline_stl(contribution_counts: List[int], username: str, year: in
     if bars is not None:
         scad_skyline_object += bars
 
-    output_filename = f"gitlab_{username}_{year}"
-    scad_ext = ".scad"
-    stl_ext = ".stl"
+    return scad_skyline_object
 
-    scad_render_to_file(scad_skyline_object, f"{output_filename}{scad_ext}")
-    logger.info(f"Generated SCAD file: {output_filename}{scad_ext} ")
+
+def export_scad(model: solid2.union, output_path: Path):
+    scad_render_to_file(model, str(output_path.absolute()))
+    logger.info(f"Generated SCAD file: {output_path}")
+
+
+def export_stl(output_path: Path, scad_path: Path):
     try:
         subprocess.run(
-            ["openscad", "-o", f"{output_filename}{stl_ext}", f"{output_filename}{scad_ext}"],
+            ["openscad", "-o", str(output_path), str(scad_path)],
             capture_output=True,
         )
-        logger.info(f"Generated STL file: {output_filename}{stl_ext} ")
+        logger.info(f"Generated STL file: {output_path}")
     except FileNotFoundError:
         logger.error("'openscad' binary not found, is OpenSCAD installed?")
         logger.error(
@@ -251,8 +256,15 @@ def main():
     )
     logger.debug(f"Padded contribution counts: {contribution_counts}")
 
-    logger.info("Generating STL...")
-    generate_skyline_stl(contribution_counts=contribution_counts, username=args.username, year=args.year)
+    logger.info("Generating Model...")
+    model = generate_skyline_stl(contribution_counts=contribution_counts, username=args.username, year=args.year)
+
+    logger.info("Exporting SCAD model")
+    output_filename = f"gitlab_{args.username}_{args.year}"
+    scad_path = args.output / f"{output_filename}.scad"
+    stl_path = args.output / f"{output_filename}.stl"
+    export_scad(model=model, path=scad_path)
+    export_stl(model=model, path=stl_path)
 
 
 if __name__ == "__main__":
@@ -267,16 +279,15 @@ if __name__ == "__main__":
         type=int,
         help="Year of contributions to fetch",
         default=datetime.datetime.now(tz=datetime.timezone.utc).year,
-        nargs="?",
     )
-    parser.add_argument("--domain", type=str, nargs="?", help="GitLab custom domain", default="https://gitlab.com")
-    parser.add_argument("--token", type=str, nargs="?", help="Personal access token", default=None)
+    parser.add_argument("-o", "--output", type=Path, help="Output path", default=Path.cwd())
+    parser.add_argument("--domain", type=str, help="GitLab custom domain", default="https://gitlab.com")
+    parser.add_argument("--token", type=str, help="Personal access token", default=None)
     parser.add_argument(
         "--concurrency",
         type=int,
         help="Max concurrent requests to GitLab",
         default=2,
-        nargs="?",
     )
     parser.add_argument("--loglevel", type=str, help="Log level", default="INFO")
 
