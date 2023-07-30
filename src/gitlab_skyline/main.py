@@ -4,7 +4,6 @@ import datetime
 import logging
 import math
 import operator
-import os
 import subprocess
 import sys
 import urllib
@@ -177,13 +176,11 @@ def generate_skyline_stl(contribution_counts: List[int], username: str, year: in
         )
     )
 
-    logo_gitlab_scad = rotate([face_angle, 0, 0])(
+    script_path = Path(__file__).parent.absolute()
+
+    logo_scad = rotate([face_angle, 0, 0])(
         translate([base_length / 8, base_height / 2 - base_top_offset / 2 - 2, -1])(
-            linear_extrude(height=2)(
-                scale([0.09, 0.09, 0.09])(
-                    import_stl(os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "gitlab.svg")
-                )
-            )
+            linear_extrude(height=2)(scale([0.09, 0.09, 0.09])(import_stl(str(script_path / "gitlab.svg"))))
         )
     )
 
@@ -220,7 +217,7 @@ def generate_skyline_stl(contribution_counts: List[int], username: str, year: in
         else:
             bars += bar
 
-    scad_skyline_object = base_scad - logo_gitlab_scad + user_scad + year_scad
+    scad_skyline_object = base_scad - logo_scad + user_scad + year_scad
 
     if bars is not None:
         scad_skyline_object += bars
