@@ -71,7 +71,6 @@ async def get_contributions_for_date(
     date_contributions: List[Tuple[str, int]],
 ):
     """Get contributions (async) for User ID on a specific date using GitLab events API"""
-    logger.info(f"Getting contributions for: {date}")
     headers = {}
     if token:
         headers["PRIVATE-TOKEN"] = token
@@ -86,7 +85,9 @@ async def get_contributions_for_date(
                 logger.debug(f"GET: {url}")
                 json = await response.json()
                 logger.debug(f"RESPONSE: {json}")
-                date_contributions.append((date.strftime("%Y-%m-%d"), len(json)))
+                contribution_count = len(json)
+                date_contributions.append((date.strftime("%Y-%m-%d"), contribution_count))
+                logger.info(f"Contributions for {date}: {contribution_count}")
 
         except Exception as err:
             logger.error(f"Exception occured: {err}")
