@@ -5,11 +5,12 @@ import asyncio
 import datetime
 import logging
 import math
+import operator
 import os
 import subprocess
 import sys
 import urllib
-from typing import List
+from typing import List, Tuple
 
 import aiohttp
 import requests
@@ -28,6 +29,7 @@ def _init_logger():
 
 
 def get_userid(username: str, domain) -> int:
+    """Get GitLab User ID from Username via GitLab Users API"""
     path = f"/api/v4/users?username={username}"
     url = urllib.parse.urljoin(domain, path)
     userid = requests.get(url, timeout=30).json()[0]["id"]
@@ -41,7 +43,7 @@ async def get_contributions(
     userid: int,
     token: str,
     date: datetime.date,
-    contribution_list: List[int],
+    date_contributions: List[Tuple[str, int]],
 ):
     """Get contributions directly using GitLab events API (asynchronously)"""
 
@@ -59,7 +61,7 @@ async def get_contributions(
                 logger.debug(f"GET: {url}")
                 json = await response.json()
                 logger.debug(f"RESPONSE: {json}")
-                contribution_list[int(date.strftime("%j")) - 1] = len(json)
+                date_contributions.append((date.strftime("%Y-%m-%d"), len(json)))
 
         except Exception as err:
             logger.error(f"Exception occured: {err}")
@@ -67,22 +69,34 @@ async def get_contributions(
 
 
 def get_dates_in_year(year: int) -> List[datetime.date]:
+    """Get all dates in specified year"""
     start_date = datetime.date(year, 1, 1)
     end_date = min(datetime.date(year + 1, 1, 1), datetime.datetime.now(tz=datetime.timezone.utc).date())
     num_days = (end_date - start_date).days
     return [start_date + datetime.timedelta(days=n) for n in range(num_days)]
 
 
-def init_contribution_list(all_dates: List[datetime.date]) -> List[int]:
-    first_date = all_dates[0]
-    last_date = all_dates[-1]
-    before_week_days = first_date.isoweekday() % 7  # Sun = 0, Mon = 1
-    after_week_days = 7 - last_date.isoweekday() % 7 + 1  # Sun = 6, Mon = 5
-    return [0] * before_week_days + [0] * len(all_dates) + [0] * after_week_days
+def pad_contribution_counts_weekdays(
+    contribution_counts: List[int], first_date: datetime.date, last_date: datetime.date
+) -> List[int]:
+    """Ensure that data starts with a Sunday and ends with a Saturday"""
+    pad_left_days = first_date.isoweekday() % 7  # Sun = 0, Mon = 1
+    pad_right_days = 7 - last_date.isoweekday() % 7 + 1  # Sun = 6, Mon = 5
+    left_padding = [0] * pad_left_days
+    right_padding = [0] * pad_right_days
+    return left_padding + contribution_counts + right_padding
 
 
-def generate_skyline_stl(username, year, contribution_list):
-    max_contributions = max(contribution_list)
+def date_contributions_to_ordered_counts(date_contributions: List[Tuple[str, int]]) -> List[int]:
+    """Sort by date and remove date from contributions"""
+    sorted_date_contributions = sorted(date_contributions, key=operator.itemgetter(0))
+    _, counts = list(zip(*sorted_date_contributions))
+    return counts
+
+
+def generate_skyline_stl(username: str, year: int, contribution_counts: List[int]):
+    """Generate SCAD model of contributions"""
+    max_contributions = max(contribution_counts)
 
     base_top_width = 23
     base_width = 30
@@ -143,12 +157,12 @@ def generate_skyline_stl(username, year, contribution_list):
     bars = None
 
     week_number = 1
-    for i in range(len(contribution_list)):
+    for i in range(len(contribution_counts)):
         day_number = i % 7
         if day_number == 0:
             week_number += 1
 
-        if contribution_list[i] == 0:
+        if contribution_counts[i] == 0:
             continue
 
         bar = translate(
@@ -162,7 +176,7 @@ def generate_skyline_stl(username, year, contribution_list):
                 [
                     bar_base_dimension,
                     bar_base_dimension,
-                    contribution_list[i] * max_length_contributionbar / max_contributions,
+                    contribution_counts[i] * max_length_contributionbar / max_contributions,
                 ]
             )
         )
@@ -191,27 +205,29 @@ def generate_skyline_stl(username, year, contribution_list):
 def main():
     _init_logger()
     logger.setLevel(args.loglevel.upper())
-    
-    contribution_list = []
+
     all_dates = get_dates_in_year(args.year)
     userid = get_userid(username=args.username, domain=args.domain)
 
+    date_contributions = []
     logger.info("Fetching contributions from GitLab...")
-
     semaphore = asyncio.Semaphore(args.concurrency)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(
         asyncio.gather(
             *[
-                get_contributions(semaphore, args.domain, userid, args.token, date, contribution_list)
+                get_contributions(semaphore, args.domain, userid, args.token, date, date_contributions)
                 for date in all_dates
             ]
         )
     )
     loop.close()
 
+    contribution_counts = date_contributions_to_ordered_counts(date_contributions)
+    contribution_counts = pad_contribution_counts_weekdays(contribution_counts)
+
     logger.info("Generating STL...")
-    generate_skyline_stl(args.username, args.year, contribution_list)
+    generate_skyline_stl(args.username, args.year, contribution_counts)
 
 
 if __name__ == "__main__":
