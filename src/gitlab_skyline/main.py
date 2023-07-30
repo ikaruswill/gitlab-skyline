@@ -92,7 +92,7 @@ def date_contributions_to_ordered_counts(date_contributions: List[Tuple[str, int
     return counts
 
 
-def generate_skyline_stl(username: str, year: int, contribution_counts: List[int]):
+def generate_skyline_stl(contribution_counts: List[int], username: str, year: int):
     """Generate SCAD model of contributions"""
     max_contributions = max(contribution_counts)
 
@@ -204,7 +204,7 @@ def main():
     _init_logger()
     logger.setLevel(args.loglevel.upper())
 
-    all_dates = get_dates_in_year(args.year)
+    all_dates = get_dates_in_year(year=args.year)
     userid = get_userid(username=args.username, domain=args.domain)
 
     date_contributions = []
@@ -214,7 +214,14 @@ def main():
     loop.run_until_complete(
         asyncio.gather(
             *[
-                get_contributions(semaphore, args.domain, userid, args.token, date, date_contributions)
+                get_contributions(
+                    semaphore=semaphore,
+                    domain=args.domain,
+                    userid=userid,
+                    token=args.token,
+                    date=date,
+                    date_contributions=date_contributions,
+                )
                 for date in all_dates
             ]
         )
@@ -227,7 +234,7 @@ def main():
     )
 
     logger.info("Generating STL...")
-    generate_skyline_stl(args.username, args.year, contribution_counts)
+    generate_skyline_stl(contribution_counts=contribution_counts, username=args.username, year=args.year)
 
 
 if __name__ == "__main__":
