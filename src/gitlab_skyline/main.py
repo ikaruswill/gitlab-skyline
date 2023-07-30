@@ -127,7 +127,7 @@ def date_contributions_to_ordered_counts(date_contributions: List[Tuple[str, int
     return list(counts)
 
 
-def generate_skyline_stl(contribution_counts: List[int], username: str, year: int) -> solid2.union:
+def generate_skyline_stl(contribution_counts: List[int], username: str, year: int, logo_path: Path) -> solid2.union:
     """Generate SCAD model of contributions"""
     if len(contribution_counts) % 7 > 0:
         msg = "Number of conributions is not perfectly divisible by 7, check that padding is applied correctly"
@@ -151,7 +151,7 @@ def generate_skyline_stl(contribution_counts: List[int], username: str, year: in
 
     if base_length < base_length_warn_threshold:
         logger.warning(
-            f"Base length is less than {base_length_warn_threshold}mm, model may have issues." 
+            f"Base length is less than {base_length_warn_threshold}mm, model may have issues."
             "Check and adjust SCAD file."
         )
 
@@ -189,9 +189,6 @@ def generate_skyline_stl(contribution_counts: List[int], username: str, year: in
             linear_extrude(height=2)(text("@" + username, 5))
         )
     )
-
-    script_path = Path(__file__).parent.absolute()
-    logo_path = script_path / "gitlab.svg"
 
     logo_scad = rotate([base_face_angle, 0, 0])(
         translate([base_length / 8, base_height / 2 - base_top_offset / 2 - 2, -1])(
@@ -284,6 +281,12 @@ def main():
         help="Max concurrent requests to GitLab",
         default=2,
     )
+    parser.add_argument(
+        "--logo",
+        type=Path,
+        help="Path to logo to be engraved on the front face",
+        default=Path(__file__).parent.absolute() / "gitlab.svg",
+    )
     parser.add_argument("--loglevel", type=str, help="Log level", default="INFO")
 
     args = parser.parse_args()
@@ -307,7 +310,9 @@ def main():
     logger.debug(f"Padded contribution counts: {contribution_counts}")
 
     logger.info("Generating model...")
-    model = generate_skyline_stl(contribution_counts=contribution_counts, username=args.username, year=args.year)
+    model = generate_skyline_stl(
+        contribution_counts=contribution_counts, username=args.username, year=args.year, logo_path=args.logo
+    )
 
     logger.info("Rendering models to file...")
     output_filename = f"gitlab_{args.username}_{args.year}"
