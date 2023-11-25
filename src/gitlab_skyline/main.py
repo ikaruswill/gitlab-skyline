@@ -27,6 +27,14 @@ def _init_logger():
     logger.addHandler(log_handler)
 
 
+def get_dates_in_year(year: int) -> List[datetime.date]:
+    """Get all dates in specified year"""
+    start_date = datetime.date(year, 1, 1)
+    end_date = min(datetime.date(year + 1, 1, 1), datetime.datetime.now(tz=datetime.timezone.utc).date())
+    num_days = (end_date - start_date).days
+    return [start_date + datetime.timedelta(days=n) for n in range(num_days)]
+
+
 def get_userid(username: str, domain) -> int:
     """Get GitLab User ID from Username via GitLab Users API"""
     path = f"/api/v4/users?username={username}"
@@ -92,14 +100,6 @@ async def get_contributions_for_date(
         except Exception as err:
             logger.error(f"Exception occured: {err}")
             pass
-
-
-def get_dates_in_year(year: int) -> List[datetime.date]:
-    """Get all dates in specified year"""
-    start_date = datetime.date(year, 1, 1)
-    end_date = min(datetime.date(year + 1, 1, 1), datetime.datetime.now(tz=datetime.timezone.utc).date())
-    num_days = (end_date - start_date).days
-    return [start_date + datetime.timedelta(days=n) for n in range(num_days)]
 
 
 def pad_contribution_counts_weekdays(
