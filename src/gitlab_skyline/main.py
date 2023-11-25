@@ -136,7 +136,9 @@ def pad_date_contributions_weekdays(date_contributions: List[Tuple[str, int]]) -
     return left_padding + date_contributions + right_padding
 
 
-def generate_skyline_model(contribution_counts: List[int], username: str, year: int, logo_path: Path) -> solid2.union:
+def generate_skyline_model(
+    contribution_counts: List[int], username: str, year: int, logo_path: Path, logo_scale: float
+) -> solid2.union:
     """Generate SCAD model of contributions"""
     if len(contribution_counts) % 7 > 0:
         msg = "Number of conributions is not perfectly divisible by 7, check that padding is applied correctly"
@@ -201,7 +203,7 @@ def generate_skyline_model(contribution_counts: List[int], username: str, year: 
 
     logo_scad = rotate([base_face_angle, 0, 0])(
         translate([base_length / 8, base_height / 2 - base_top_offset / 2 - 2, -1])(
-            linear_extrude(height=2)(scale([0.09, 0.09, 0.09])(import_stl(str(logo_path))))
+            linear_extrude(height=2)(scale([logo_scale, logo_scale, logo_scale])(import_stl(str(logo_path))))
         )
     )
 
@@ -282,9 +284,7 @@ def main():
         default=datetime.datetime.now(tz=datetime.timezone.utc).year,
         nargs="?",
     )
-    parser.add_argument(
-        "-t", "--truncate", action="store_true", help="Truncate dates before first contribution"
-    )
+    parser.add_argument("-t", "--truncate", action="store_true", help="Truncate dates before first contribution")
     parser.add_argument("-o", "--output", type=Path, help="Output path", default=Path.cwd())
     parser.add_argument("--stl", action="store_true", help="Export an STL file as well (Requires openscad binary)")
     parser.add_argument("--domain", type=str, help="GitLab custom domain", default="https://gitlab.com")
@@ -298,9 +298,10 @@ def main():
     parser.add_argument(
         "--logo",
         type=Path,
-        help="Path to logo to be engraved on the front face",
+        help="Path to SVG of logo to be engraved on the front face",
         default=Path(__file__).parent.absolute() / "gitlab.svg",
     )
+    parser.add_argument("--logo-scale", type=float, help="Scale factor for logo", default=0.09)
     parser.add_argument("--loglevel", type=str, help="Log level", default="INFO")
 
     args = parser.parse_args()
@@ -329,7 +330,11 @@ def main():
 
     logger.info("Generating model...")
     model = generate_skyline_model(
-        contribution_counts=contribution_counts, username=args.username, year=args.year, logo_path=args.logo
+        contribution_counts=contribution_counts,
+        username=args.username,
+        year=args.year,
+        logo_path=args.logo,
+        logo_scale=args.logo_scale,
     )
 
     logger.info("Rendering models to file...")
