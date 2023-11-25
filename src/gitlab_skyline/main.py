@@ -39,7 +39,12 @@ def get_userid(username: str, domain) -> int:
     """Get GitLab User ID from Username via GitLab Users API"""
     path = f"/api/v4/users?username={username}"
     url = urllib.parse.urljoin(domain, path)
-    userid = requests.get(url, timeout=30).json()[0]["id"]
+    response_json = requests.get(url, timeout=30).json()
+    try:
+        userid = response_json[0]["id"]
+    except IndexError:
+        raise ValueError(f"User @{username} does not exist")
+
     logger.info(f"User ID for @{username} is {userid}")
     return userid
 
