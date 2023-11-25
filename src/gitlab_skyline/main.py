@@ -129,8 +129,8 @@ def pad_date_contributions_weekdays(date_contributions: List[Tuple[str, int]]) -
     pad_right_days = 6 - last_date.isoweekday() % 7
     logger.debug(f"Left weekdays to pad: {pad_left_days}")
     logger.debug(f"Right weekdays to pad: {pad_right_days}")
-    left_padding = [first_date.strftime('%Y-%m-%d'), 0] * pad_left_days
-    right_padding = [last_date.strftime('%Y-%m-%d'), 0] * pad_right_days
+    left_padding = [(first_date.strftime('%Y-%m-%d'), 0)] * pad_left_days
+    right_padding = [(last_date.strftime('%Y-%m-%d'), 0)] * pad_right_days
     logger.debug(f"Left padding: {left_padding}")
     logger.debug(f"Right padding: {right_padding}")
     return left_padding + date_contributions + right_padding
