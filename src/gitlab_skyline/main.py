@@ -131,7 +131,7 @@ def pad_date_contributions_weekdays(date_contributions: List[Tuple[str, int]]) -
     return left_padding + date_contributions + right_padding
 
 
-def generate_skyline_stl(contribution_counts: List[int], username: str, year: int, logo_path: Path) -> solid2.union:
+def generate_skyline_model(contribution_counts: List[int], username: str, year: int, logo_path: Path) -> solid2.union:
     """Generate SCAD model of contributions"""
     if len(contribution_counts) % 7 > 0:
         msg = "Number of conributions is not perfectly divisible by 7, check that padding is applied correctly"
@@ -281,7 +281,7 @@ def main():
         "-t", "--truncate", action="store_true", help="Truncate dates before first contribution"
     )
     parser.add_argument("-o", "--output", type=Path, help="Output path", default=Path.cwd())
-    parser.add_argument("--stl", help="Export an STL file as well (Requires openscad binary)", action="store_true")
+    parser.add_argument("--stl", action="store_true", help="Export an STL file as well (Requires openscad binary)")
     parser.add_argument("--domain", type=str, help="GitLab custom domain", default="https://gitlab.com")
     parser.add_argument("--token", type=str, help="Personal access token", default=None)
     parser.add_argument(
@@ -323,7 +323,7 @@ def main():
     logger.debug(f"Contribution counts {contribution_counts}")
 
     logger.info("Generating model...")
-    model = generate_skyline_stl(
+    model = generate_skyline_model(
         contribution_counts=contribution_counts, username=args.username, year=args.year, logo_path=args.logo
     )
 
