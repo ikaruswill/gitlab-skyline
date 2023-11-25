@@ -103,6 +103,15 @@ async def get_contributions_for_date(
             pass
 
 
+def get_first_contribution_index(date_contributions: List[Tuple[datetime.date, int]]) -> int:
+    """Find the date and list index of the first contribution"""
+    for index, (_, contribution_count) in date_contributions:
+        if contribution_count > 0:
+            return index
+    logger.warning("Unable to determine first contribution index: No contributions in range")
+    return 0
+
+
 def get_ordered_contribution_counts(date_contributions: List[Tuple[str, int]]) -> List[int]:
     """Remove date from contributions"""
     _, counts = list(zip(*date_contributions))
@@ -274,6 +283,9 @@ def main():
         default=datetime.datetime.now(tz=datetime.timezone.utc).year,
         nargs="?",
     )
+    parser.add_argument(
+        "-t", "--truncate", type=bool, action="store_true", help="Truncate dates before first contribution"
+    )
     parser.add_argument("-o", "--output", type=Path, help="Output path", default=Path.cwd())
     parser.add_argument("--stl", help="Export an STL file as well (Requires openscad binary)", action="store_true")
     parser.add_argument("--domain", type=str, help="GitLab custom domain", default="https://gitlab.com")
@@ -305,10 +317,17 @@ def main():
         userid=userid, dates=dates, domain=args.domain, token=args.token, concurrency=args.concurrency
     )
 
+    if args.truncate:
+        logger.info("Truncating dates before first contribution")
+        first_contribution_index = get_first_contribution_index(date_contributions=date_contributions)
+        date_contributions = date_contributions[first_contribution_index:]
+    first_date = date_contributions[0]
+    last_date = date_contributions[-1]
+
     ordered_contribution_counts = get_ordered_contribution_counts(date_contributions=date_contributions)
     logger.debug(f"Ordered contribution counts {ordered_contribution_counts}")
     contribution_counts = pad_contribution_counts_weekdays(
-        ordered_contribution_counts=ordered_contribution_counts, first_date=dates[0], last_date=dates[-1]
+        ordered_contribution_counts=ordered_contribution_counts, first_date=first_date, last_date=last_date
     )
     logger.debug(f"Padded contribution counts: {contribution_counts}")
 
