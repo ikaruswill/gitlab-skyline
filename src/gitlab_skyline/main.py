@@ -278,7 +278,7 @@ def main():
         nargs="?",
     )
     parser.add_argument(
-        "-t", "--truncate", type=bool, action="store_true", help="Truncate dates before first contribution"
+        "-t", "--truncate", action="store_true", help="Truncate dates before first contribution"
     )
     parser.add_argument("-o", "--output", type=Path, help="Output path", default=Path.cwd())
     parser.add_argument("--stl", help="Export an STL file as well (Requires openscad binary)", action="store_true")
