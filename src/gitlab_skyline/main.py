@@ -46,7 +46,7 @@ def get_userid(username: str, domain) -> int:
 
 def get_contributions(
     userid: int, dates: List[datetime.date], domain: str, token: str, concurrency: int
-) -> List[Tuple[str, int]]:
+) -> List[Tuple[datetime.date, int]]:
     """Get contributions for User ID"""
     date_contributions = []
     semaphore = asyncio.Semaphore(concurrency)
@@ -76,7 +76,7 @@ async def get_contributions_for_date(
     userid: int,
     token: str,
     date: datetime.date,
-    date_contributions: List[Tuple[str, int]],
+    date_contributions: List[Tuple[datetime.date, int]],
 ):
     """Get contributions (async) for User ID on a specific date using GitLab events API"""
     headers = {}
@@ -94,7 +94,7 @@ async def get_contributions_for_date(
                 json = await response.json()
                 logger.debug(f"RESPONSE: {json}")
                 contribution_count = len(json)
-                date_contributions.append((date.strftime("%Y-%m-%d"), contribution_count))
+                date_contributions.append((date, contribution_count))
                 logger.info(f"Contributions for {date}: {contribution_count}")
 
         except Exception as err:
