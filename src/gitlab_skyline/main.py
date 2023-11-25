@@ -47,7 +47,7 @@ def get_userid(username: str, domain) -> int:
 def get_contributions(
     userid: int, dates: List[datetime.date], domain: str, token: str, concurrency: int
 ) -> List[Tuple[datetime.date, int]]:
-    """Get contributions for User ID"""
+    """Get contributions for User ID ordered by date"""
     date_contributions = []
     semaphore = asyncio.Semaphore(concurrency)
     loop = asyncio.get_event_loop()
@@ -67,6 +67,7 @@ def get_contributions(
         )
     )
     loop.close()
+    date_contributions.sort(key=operator.itemgetter(0))
     return date_contributions
 
 
@@ -102,6 +103,12 @@ async def get_contributions_for_date(
             pass
 
 
+def get_ordered_contribution_counts(date_contributions: List[Tuple[str, int]]) -> List[int]:
+    """Remove date from contributions"""
+    _, counts = list(zip(*date_contributions))
+    return list(counts)
+
+
 def pad_contribution_counts_weekdays(
     ordered_contribution_counts: List[int], first_date: datetime.date, last_date: datetime.date
 ) -> List[int]:
@@ -119,13 +126,6 @@ def pad_contribution_counts_weekdays(
     logger.debug(f"Left padding: {left_padding}")
     logger.debug(f"Right padding: {right_padding}")
     return left_padding + ordered_contribution_counts + right_padding
-
-
-def date_contributions_to_ordered_counts(date_contributions: List[Tuple[str, int]]) -> List[int]:
-    """Sort by date and remove date from contributions"""
-    sorted_date_contributions = sorted(date_contributions, key=operator.itemgetter(0))
-    _, counts = list(zip(*sorted_date_contributions))
-    return list(counts)
 
 
 def generate_skyline_stl(contribution_counts: List[int], username: str, year: int, logo_path: Path) -> solid2.union:
@@ -305,7 +305,7 @@ def main():
         userid=userid, dates=dates, domain=args.domain, token=args.token, concurrency=args.concurrency
     )
 
-    ordered_contribution_counts = date_contributions_to_ordered_counts(date_contributions=date_contributions)
+    ordered_contribution_counts = get_ordered_contribution_counts(date_contributions=date_contributions)
     logger.debug(f"Ordered contribution counts {ordered_contribution_counts}")
     contribution_counts = pad_contribution_counts_weekdays(
         ordered_contribution_counts=ordered_contribution_counts, first_date=dates[0], last_date=dates[-1]
