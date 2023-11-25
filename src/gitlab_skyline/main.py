@@ -112,16 +112,10 @@ def get_first_contribution_index(date_contributions: List[Tuple[datetime.date, i
     return 0
 
 
-def get_ordered_contribution_counts(date_contributions: List[Tuple[str, int]]) -> List[int]:
-    """Remove date from contributions"""
-    _, counts = list(zip(*date_contributions))
-    return list(counts)
-
-
-def pad_contribution_counts_weekdays(
-    ordered_contribution_counts: List[int], first_date: datetime.date, last_date: datetime.date
-) -> List[int]:
+def pad_date_contributions_weekdays(date_contributions: List[Tuple[str, int]]) -> List[Tuple[str, int]]:
     """Ensure that data starts with a Sunday and ends with a Saturday"""
+    first_date = date_contributions[0][0]
+    last_date = date_contributions[-1][0]
     logger.debug(f"First date: {first_date.strftime('%Y-%m-%d')}")
     logger.debug(f"Last date: {last_date.strftime('%Y-%m-%d')}")
     # Sun = 0, Mon = 1, Tue = 2, Wed = 3, Thu = 4, Fri = 5, Sat = 6
@@ -130,11 +124,11 @@ def pad_contribution_counts_weekdays(
     pad_right_days = 6 - last_date.isoweekday() % 7
     logger.debug(f"Left weekdays to pad: {pad_left_days}")
     logger.debug(f"Right weekdays to pad: {pad_right_days}")
-    left_padding = [0] * pad_left_days
-    right_padding = [0] * pad_right_days
+    left_padding = [first_date.strftime('%Y-%m-%d'), 0] * pad_left_days
+    right_padding = [last_date.strftime('%Y-%m-%d'), 0] * pad_right_days
     logger.debug(f"Left padding: {left_padding}")
     logger.debug(f"Right padding: {right_padding}")
-    return left_padding + ordered_contribution_counts + right_padding
+    return left_padding + date_contributions + right_padding
 
 
 def generate_skyline_stl(contribution_counts: List[int], username: str, year: int, logo_path: Path) -> solid2.union:
@@ -321,15 +315,12 @@ def main():
         logger.info("Truncating dates before first contribution")
         first_contribution_index = get_first_contribution_index(date_contributions=date_contributions)
         date_contributions = date_contributions[first_contribution_index:]
-    first_date = date_contributions[0]
-    last_date = date_contributions[-1]
 
-    ordered_contribution_counts = get_ordered_contribution_counts(date_contributions=date_contributions)
-    logger.debug(f"Ordered contribution counts {ordered_contribution_counts}")
-    contribution_counts = pad_contribution_counts_weekdays(
-        ordered_contribution_counts=ordered_contribution_counts, first_date=first_date, last_date=last_date
-    )
-    logger.debug(f"Padded contribution counts: {contribution_counts}")
+    date_contributions = pad_date_contributions_weekdays(date_contributions=date_contributions)
+    logger.debug(f"Padded contributions: {date_contributions}")
+
+    _, contribution_counts = list(zip(*date_contributions))
+    logger.debug(f"Contribution counts {contribution_counts}")
 
     logger.info("Generating model...")
     model = generate_skyline_stl(
