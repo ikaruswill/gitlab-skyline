@@ -110,7 +110,7 @@ async def get_contributions_for_date(
 
 def get_first_contribution_index(date_contributions: List[Tuple[datetime.date, int]]) -> int:
     """Find the date and list index of the first contribution"""
-    for index, (_, contribution_count) in date_contributions:
+    for index, (_, contribution_count) in enumerate(date_contributions):
         if contribution_count > 0:
             return index
     logger.warning("Unable to determine first contribution index: No contributions in range")
