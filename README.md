@@ -45,7 +45,7 @@ gitlab-skyline <username> <year>
 ## Arguments available
 ```
 gitlab-skyline --help
-usage: gitlab-skyline [-h] [-o OUTPUT] [--stl] [--domain DOMAIN] [--token TOKEN] [--concurrency CONCURRENCY] [--logo LOGO] [--loglevel LOGLEVEL]
+usage: gitlab-skyline [-h] [-t] [-o OUTPUT] [--stl] [--url URL] [--token TOKEN] [--concurrency CONCURRENCY] [--logo LOGO] [--logo-scale LOGO_SCALE] [--loglevel LOGLEVEL]
                       username [year]
 
 Create OpenSCAD [and STL] models from GitLab contributions
@@ -56,14 +56,17 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
+  -t, --truncate        Truncate dates before first contribution (default: False)
   -o OUTPUT, --output OUTPUT
-                        Output path (default: Current working directory)
+                        Output path (default: /Users/will.ho/Documents/Dev/Projects/gitlab-skyline)
   --stl                 Export an STL file as well (Requires openscad binary) (default: False)
-  --domain DOMAIN       GitLab custom domain (default: https://gitlab.com)
+  --url URL             GitLab URL (default: https://gitlab.com)
   --token TOKEN         Personal access token (default: None)
   --concurrency CONCURRENCY
                         Max concurrent requests to GitLab (default: 2)
-  --logo LOGO           Path to logo to be engraved on the front face (default: <script_path>/gitlab.svg)
+  --logo LOGO           Path to SVG of logo to be engraved on the front face (default: /Users/will.ho/Documents/Dev/Projects/gitlab-skyline/src/gitlab_skyline/gitlab.svg)
+  --logo-scale LOGO_SCALE
+                        Scale factor for logo (default: 0.09)
   --loglevel LOGLEVEL   Log level (default: INFO)
 ```
 
