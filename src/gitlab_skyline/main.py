@@ -35,10 +35,10 @@ def get_dates_in_year(year: int) -> List[datetime.date]:
     return [start_date + datetime.timedelta(days=n) for n in range(num_days)]
 
 
-def get_userid(username: str, domain) -> int:
+def get_userid(username: str, gitlab_url) -> int:
     """Get GitLab User ID from Username via GitLab Users API"""
     path = f"/api/v4/users?username={username}"
-    url = urllib.parse.urljoin(domain, path)
+    url = urllib.parse.urljoin(gitlab_url, path)
     response_json = requests.get(url, timeout=30).json()
     try:
         userid = response_json[0]["id"]
@@ -50,7 +50,7 @@ def get_userid(username: str, domain) -> int:
 
 
 def get_contributions(
-    userid: int, dates: List[datetime.date], domain: str, token: str, concurrency: int
+    userid: int, dates: List[datetime.date], gitlab_url: str, token: str, concurrency: int
 ) -> List[Tuple[datetime.date, int]]:
     """Get contributions for User ID ordered by date"""
     date_contributions = []
@@ -61,7 +61,7 @@ def get_contributions(
             *[
                 get_contributions_for_date(
                     semaphore=semaphore,
-                    domain=domain,
+                    gitlab_url=gitlab_url,
                     userid=userid,
                     token=token,
                     date=date,
@@ -78,7 +78,7 @@ def get_contributions(
 
 async def get_contributions_for_date(
     semaphore: asyncio.Semaphore,
-    domain: str,
+    gitlab_url: str,
     userid: int,
     token: str,
     date: datetime.date,
@@ -94,7 +94,7 @@ async def get_contributions_for_date(
             after = (date - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
             before = (date + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
             path = f"/api/v4/users/{userid}/events?after={after}&before={before}"
-            url = urllib.parse.urljoin(domain, path)
+            url = urllib.parse.urljoin(gitlab_url, path)
             async with semaphore, client.get(url) as response:
                 logger.debug(f"GET: {url}")
                 json = await response.json()
@@ -287,7 +287,7 @@ def main():
     parser.add_argument("-t", "--truncate", action="store_true", help="Truncate dates before first contribution")
     parser.add_argument("-o", "--output", type=Path, help="Output path", default=Path.cwd())
     parser.add_argument("--stl", action="store_true", help="Export an STL file as well (Requires openscad binary)")
-    parser.add_argument("--domain", type=str, help="GitLab custom domain", default="https://gitlab.com")
+    parser.add_argument("--url", type=str, help="GitLab URL", default="https://gitlab.com")
     parser.add_argument("--token", type=str, help="Personal access token", default=None)
     parser.add_argument(
         "--concurrency",
@@ -310,11 +310,11 @@ def main():
     logger.setLevel(args.loglevel.upper())
 
     dates = get_dates_in_year(year=args.year)
-    userid = get_userid(username=args.username, domain=args.domain)
+    userid = get_userid(username=args.username, gitlab_url=args.url)
 
     logger.info("Fetching contributions from GitLab...")
     date_contributions = get_contributions(
-        userid=userid, dates=dates, domain=args.domain, token=args.token, concurrency=args.concurrency
+        userid=userid, dates=dates, gitlab_url=args.url, token=args.token, concurrency=args.concurrency
     )
 
     if args.truncate:
