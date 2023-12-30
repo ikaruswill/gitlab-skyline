@@ -6,7 +6,7 @@ import math
 import operator
 import subprocess
 import sys
-import urllib
+import urllib.parse
 from pathlib import Path
 from typing import List, Tuple
 
@@ -270,6 +270,12 @@ def render_stl(scad_path: Path, path: Path):
         )
 
 
+def fix_url(url: str) -> str:
+    if not url.startswith("https://") or not url.startswith("http://"):
+        logger.warning("Scheme not provided in url argument, assuming 'https'...")
+        return f"https://{url}"
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="gitlab-skyline",
@@ -309,6 +315,7 @@ def main():
     _init_logger()
     logger.setLevel(args.loglevel.upper())
 
+    args.url = fix_url(args.url)
     dates = get_dates_in_year(year=args.year)
     userid = get_userid(username=args.username, gitlab_url=args.url)
 
