@@ -146,6 +146,7 @@ def generate_skyline_model(
 
     max_contributions = max(contribution_counts)
     base_length_warn_threshold = 100
+    
     # Parameters
     base_top_offset = 3.5
     base_width = 30
@@ -154,6 +155,19 @@ def generate_skyline_model(
     bar_max_height = 20
     bar_l_margin = 2.5
     bar_w_margin = 2.5
+
+    text_emboss = 1.5
+    logo_engrave = 1
+
+    logo_text_margin = 10
+    handle_x = 35
+    logo_y = 1.25
+
+    # Coupled text parameters: Any change requires tuning all visually
+    text_size = 5
+    font = "Helvetica"
+    year_width_est = 14
+    text_y = 2.5
 
     # Derived parameters
     num_columns = len(contribution_counts) / 7
@@ -190,19 +204,19 @@ def generate_skyline_model(
     base_scad = polyhedron(points=base_points, faces=base_faces)
 
     year_scad = rotate([base_face_angle, 0, 0])(
-        translate([base_length - base_length / 5, base_height / 2 - base_top_offset / 2 - 1, -1.5])(
-            linear_extrude(height=2)(text(str(year), 6))
+        translate([base_length - logo_text_margin - year_width_est, text_y, -text_emboss])(
+            linear_extrude(height=2)(text(text=str(year), size=text_size, font=font))
         )
     )
 
     user_scad = rotate([base_face_angle, 0, 0])(
-        translate([base_length / 4, base_height / 2 - base_top_offset / 2, -1.5])(
-            linear_extrude(height=2)(text("@" + username, 5))
+        translate([handle_x, text_y, -text_emboss])(
+            linear_extrude(height=2)(text(text="@" + username, size=text_size, font=font))
         )
     )
 
     logo_scad = rotate([base_face_angle, 0, 0])(
-        translate([base_length / 8, base_height / 2 - base_top_offset / 2 - 2, -1])(
+        translate([logo_text_margin, logo_y, -logo_engrave])(
             linear_extrude(height=2)(scale([logo_scale, logo_scale, logo_scale])(import_stl(str(logo_path))))
         )
     )
