@@ -156,8 +156,7 @@ def generate_skyline_model(
     bar_l_margin = 2.5
     bar_w_margin = 2.5
 
-    text_emboss = 1.5
-    logo_engrave = 1
+    engrave_depth = 1
 
     logo_text_margin = 10
     handle_x = 35
@@ -204,19 +203,19 @@ def generate_skyline_model(
     base_scad = polyhedron(points=base_points, faces=base_faces)
 
     year_scad = rotate([base_face_angle, 0, 0])(
-        translate([base_length - logo_text_margin - year_width_est, text_y, -text_emboss])(
+        translate([base_length - logo_text_margin - year_width_est, text_y, -engrave_depth])(
             linear_extrude(height=2)(text(text=str(year), size=text_size, font=font))
         )
     )
 
     user_scad = rotate([base_face_angle, 0, 0])(
-        translate([handle_x, text_y, -text_emboss])(
+        translate([handle_x, text_y, -engrave_depth])(
             linear_extrude(height=2)(text(text="@" + username, size=text_size, font=font))
         )
     )
 
     logo_scad = rotate([base_face_angle, 0, 0])(
-        translate([logo_text_margin, logo_y, -logo_engrave])(
+        translate([logo_text_margin, logo_y, -engrave_depth])(
             linear_extrude(height=2)(scale([logo_scale, logo_scale, logo_scale])(import_stl(str(logo_path))))
         )
     )
@@ -256,7 +255,7 @@ def generate_skyline_model(
         if day_number == last_weekday:
             week_number += 1
 
-    scad_skyline_object = base_scad - logo_scad + user_scad + year_scad
+    scad_skyline_object = base_scad - logo_scad - user_scad - year_scad
 
     if bars is not None:
         scad_skyline_object += bars
