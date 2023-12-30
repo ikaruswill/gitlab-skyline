@@ -156,7 +156,7 @@ def generate_skyline_model(
     bar_l_margin = 2.5
     bar_w_margin = 2.5
 
-    engrave_depth = 1
+    engrave_depth = 0.4
 
     logo_text_margin = 10
     handle_x = 35
