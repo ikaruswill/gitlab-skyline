@@ -84,7 +84,7 @@ def get_contributions_cache(path: Path) -> List[Tuple[datetime.date, int]]:
             raise ValueError(f"Cache is invalid JSON ({path}): {e}")
 
     logger.debug(f"Cache is valid ({path})")
-    date_contributions = [(d.strptime("%Y-%m-%d"), c) for d, c in date_contributions_map.items()]
+    date_contributions = [(datetime.datetime.strptime(d, "%Y-%m-%d").date(), c) for d, c in date_contributions_map.items()]
     date_contributions.sort(key=operator.itemgetter(0))
     return date_contributions
 
