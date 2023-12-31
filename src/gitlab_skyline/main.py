@@ -18,6 +18,7 @@ from solid2 import cube, import_stl, linear_extrude, polyhedron, rotate, scad_re
 __author__ = "Will Ho"
 
 logger = logging.getLogger(__name__)
+GITLAB_MAX_EVENTS_PER_PAGE = 100
 
 
 def _init_logger():
@@ -91,11 +92,16 @@ async def get_contributions_for_date(
 
     async with aiohttp.ClientSession(raise_for_status=True, headers=headers) as client:
         try:
+            path = f"/api/v4/users/{userid}/events"
+            url = urllib.parse.urljoin(gitlab_url, path)
             after = (date - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
             before = (date + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-            path = f"/api/v4/users/{userid}/events?after={after}&before={before}"
-            url = urllib.parse.urljoin(gitlab_url, path)
-            async with semaphore, client.get(url) as response:
+            params = {
+                "after": after,
+                "before": before,
+                "per_page": GITLAB_MAX_EVENTS_PER_PAGE,
+            }
+            async with semaphore, client.get(url, params=params) as response:
                 logger.debug(f"GET: {url}")
                 json = await response.json()
                 logger.debug(f"RESPONSE: {json}")
@@ -146,7 +152,7 @@ def generate_skyline_model(
 
     max_contributions = max(contribution_counts)
     base_length_warn_threshold = 100
-    
+
     # Parameters
     base_top_offset = 3.5
     base_width = 30
