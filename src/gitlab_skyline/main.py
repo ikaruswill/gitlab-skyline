@@ -26,7 +26,7 @@ CACHE_EXPIRY_HOURS = 24
 
 def _init_logger():
     log_handler = logging.StreamHandler(sys.stdout)
-    log_formatter = logging.Formatter("%(created)f:%(levelname)s:%(name)s:%(module)s:%(message)s")
+    log_formatter = logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s")
     log_handler.setFormatter(log_formatter)
     logger.addHandler(log_handler)
 
