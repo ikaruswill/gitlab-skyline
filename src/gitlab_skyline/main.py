@@ -75,7 +75,7 @@ def get_contributions_cache(path: Path) -> List[Tuple[datetime.date, int]]:
     current_time = datetime.datetime.now()
     cache_age = current_time - cache_modified_time
     if cache_age >= cache_expiry:
-        raise ValueError(f"Cache has expired ({cache_age} hours > {CACHE_EXPIRY_HOURS} hours) ({path})")
+        raise ValueError(f"Cache has expired ({cache_age.seconds / 3600} hours > {CACHE_EXPIRY_HOURS} hours) ({path})")
 
     with open(path) as f:
         try:
