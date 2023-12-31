@@ -138,15 +138,23 @@ async def get_contributions_for_date(
             params = {
                 "after": after,
                 "before": before,
+                "page": 1,
                 "per_page": GITLAB_MAX_EVENTS_PER_PAGE,
             }
-            async with semaphore, client.get(url, params=params) as response:
-                logger.debug(f"GET: {url}")
-                json = await response.json()
-                logger.debug(f"RESPONSE: {json}")
-                contribution_count = len(json)
-                date_contributions.append((date, contribution_count))
-                logger.info(f"Contributions for {date}: {contribution_count}")
+
+            contributions_for_date = 0
+            contribution_count_in_page = None
+            while contribution_count_in_page is None or contribution_count_in_page == GITLAB_MAX_EVENTS_PER_PAGE:
+                async with semaphore, client.get(url, params=params) as response:
+                    logger.debug(f"GET: {url}")
+                    json = await response.json()
+                    logger.debug(f"RESPONSE: {json}")
+                contribution_count_in_page = len(json)
+                contributions_for_date += contribution_count_in_page
+                params["page"] += 1
+
+            date_contributions.append((date, contributions_for_date))
+            logger.info(f"Contributions for {date}: {contributions_for_date}")
 
         except Exception as err:
             logger.error(f"Exception occured: {err}")
