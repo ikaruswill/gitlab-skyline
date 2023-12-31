@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import datetime
+import json
 import logging
 import math
 import operator
@@ -13,7 +14,8 @@ from typing import List, Tuple
 import aiohttp
 import requests
 import solid2
-from solid2 import cube, import_stl, linear_extrude, polyhedron, rotate, scad_render_to_file, scale, text, translate
+from solid2 import (cube, import_stl, linear_extrude, polyhedron, rotate,
+                    scad_render_to_file, scale, text, translate)
 
 __author__ = "Will Ho"
 
@@ -48,6 +50,17 @@ def get_userid(username: str, gitlab_url) -> int:
 
     logger.info(f"User ID for @{username} is {userid}")
     return userid
+
+
+def get_output_filename(url: str, username: str, year: int):
+    domain = urllib.parse.urlparse(url).netloc
+    return f"{domain}_{username}_{year}"
+
+def cache_contributions(date_contributions: List[Tuple[datetime.date, int]], path: Path):
+    date_contributions_map = {d: c for d,c in sorted(date_contributions, key=operator.itemgetter(0))}
+
+    with open(path, 'w') as f:
+        json.dump(date_contributions_map, f)
 
 
 def get_contributions(
@@ -335,13 +348,26 @@ def main():
     logger.setLevel(args.loglevel.upper())
 
     args.url = fix_url(args.url)
-    dates = get_dates_in_year(year=args.year)
-    userid = get_userid(username=args.username, gitlab_url=args.url)
+    output_filename = get_output_filename(url=args.url, username=args.username, year=args.year)
+    cache_path = args.output / f"{output_filename}.json"
 
-    logger.info("Fetching contributions from GitLab...")
-    date_contributions = get_contributions(
-        userid=userid, dates=dates, gitlab_url=args.url, token=args.token, concurrency=args.concurrency
-    )
+    logger.debug(f"Checking for cached results at {cache_path}...")
+    if cache_path.exists() and cache_path.is_file():
+        logger.debug(f"Cached results found at {cache_path}")
+        logger.info("Using cached results, skipping fetch...")
+        with open(cache_path) as f:
+            date_contributions = json.load(f)
+    else:
+        logger.debug(f"No cached results found at {cache_path}")
+        dates = get_dates_in_year(year=args.year)
+        userid = get_userid(username=args.username, gitlab_url=args.url)
+    
+        logger.info("Fetching contributions from GitLab...")
+        date_contributions = get_contributions(
+            userid=userid, dates=dates, gitlab_url=args.url, token=args.token, concurrency=args.concurrency
+        )
+        logger.debug(f"Caching contributions to {cache_path}")
+        cache_contributions(date_contributions=date_contributions, path=cache_path)
 
     if args.truncate:
         logger.info("Truncating dates before first contribution")
@@ -364,7 +390,7 @@ def main():
     )
 
     logger.info("Rendering models to file...")
-    output_filename = f"gitlab_{args.username}_{args.year}"
+
     scad_path = args.output / f"{output_filename}.scad"
     stl_path = args.output / f"{output_filename}.stl"
     render_scad(model=model, path=scad_path)
