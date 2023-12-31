@@ -21,6 +21,7 @@ __author__ = "Will Ho"
 
 logger = logging.getLogger(__name__)
 GITLAB_MAX_EVENTS_PER_PAGE = 100
+CACHE_EXPIRY_HOURS = 24
 
 
 def _init_logger():
@@ -56,11 +57,36 @@ def get_output_filename(url: str, username: str, year: int):
     domain = urllib.parse.urlparse(url).netloc
     return f"{domain}_{username}_{year}"
 
-def cache_contributions(date_contributions: List[Tuple[datetime.date, int]], path: Path):
-    date_contributions_map = {d: c for d,c in sorted(date_contributions, key=operator.itemgetter(0))}
+
+def put_contributions_cache(date_contributions: List[Tuple[datetime.date, int]], path: Path):
+    date_contributions_map = {d: c for d, c in sorted(date_contributions, key=operator.itemgetter(0))}
 
     with open(path, 'w') as f:
         json.dump(date_contributions_map, f)
+
+
+def get_contributions_cache(path: Path) -> List[Tuple[datetime.date, int]]:
+    if not path.exists():
+        raise ValueError(f"Cache does not exist ({path})")
+    if not path.is_file():
+        raise ValueError(f"Cache is not a file ({path})")
+    cache_expiry = datetime.timedelta(hours=CACHE_EXPIRY_HOURS)
+    cache_modified_time = datetime.datetime.fromtimestamp(path.stat().st_mtime)
+    current_time = datetime.datetime.now()
+    cache_age = (current_time - cache_modified_time).seconds / 3600
+    if cache_age >= cache_expiry:
+        raise ValueError(f"Cache has expired ({cache_age} hours > {CACHE_EXPIRY_HOURS} hours) ({path})")
+
+    with open(path) as f:
+        try:
+            date_contributions_map = json.load(f)
+        except ValueError as e:
+            raise ValueError(f"Cache is invalid JSON ({path}): {e}")
+
+    logger.debug(f"Cache is valid ({path})")
+    date_contributions = date_contributions_map.items()
+    date_contributions.sort(key=operator.itemgetter(0))
+    return date_contributions
 
 
 def get_contributions(
@@ -352,22 +378,20 @@ def main():
     cache_path = args.output / f"{output_filename}.json"
 
     logger.debug(f"Checking for cached results at {cache_path}...")
-    if cache_path.exists() and cache_path.is_file():
-        logger.debug(f"Cached results found at {cache_path}")
+    try:
+        date_contributions = get_contributions_cache(path=cache_path)
         logger.info("Using cached results, skipping fetch...")
-        with open(cache_path) as f:
-            date_contributions = json.load(f)
-    else:
-        logger.debug(f"No cached results found at {cache_path}")
+    except ValueError as e:
+        logger.debug(f"No valid cached results found at {cache_path}")
         dates = get_dates_in_year(year=args.year)
         userid = get_userid(username=args.username, gitlab_url=args.url)
-    
+
         logger.info("Fetching contributions from GitLab...")
         date_contributions = get_contributions(
             userid=userid, dates=dates, gitlab_url=args.url, token=args.token, concurrency=args.concurrency
         )
         logger.debug(f"Caching contributions to {cache_path}")
-        cache_contributions(date_contributions=date_contributions, path=cache_path)
+        put_contributions_cache(date_contributions=date_contributions, path=cache_path)
 
     if args.truncate:
         logger.info("Truncating dates before first contribution")
