@@ -59,7 +59,7 @@ def get_output_filename(url: str, username: str, year: int):
 
 
 def put_contributions_cache(date_contributions: List[Tuple[datetime.date, int]], path: Path):
-    date_contributions_map = {d: c for d, c in sorted(date_contributions, key=operator.itemgetter(0))}
+    date_contributions_map = {d.strftime("%Y-%m-%d"): c for d, c in sorted(date_contributions, key=operator.itemgetter(0))}
 
     with open(path, 'w') as f:
         json.dump(date_contributions_map, f)
@@ -73,7 +73,7 @@ def get_contributions_cache(path: Path) -> List[Tuple[datetime.date, int]]:
     cache_expiry = datetime.timedelta(hours=CACHE_EXPIRY_HOURS)
     cache_modified_time = datetime.datetime.fromtimestamp(path.stat().st_mtime)
     current_time = datetime.datetime.now()
-    cache_age = (current_time - cache_modified_time).seconds / 3600
+    cache_age = current_time - cache_modified_time
     if cache_age >= cache_expiry:
         raise ValueError(f"Cache has expired ({cache_age} hours > {CACHE_EXPIRY_HOURS} hours) ({path})")
 
@@ -84,7 +84,7 @@ def get_contributions_cache(path: Path) -> List[Tuple[datetime.date, int]]:
             raise ValueError(f"Cache is invalid JSON ({path}): {e}")
 
     logger.debug(f"Cache is valid ({path})")
-    date_contributions = date_contributions_map.items()
+    date_contributions = [(d.strptime("%Y-%m-%d"), c) for d, c in date_contributions_map.items()]
     date_contributions.sort(key=operator.itemgetter(0))
     return date_contributions
 
