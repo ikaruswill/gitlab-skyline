@@ -189,6 +189,11 @@ def pad_date_contributions_weekdays(date_contributions: List[Tuple[str, int]]) -
     return left_padding + date_contributions + right_padding
 
 
+def get_bar_heights(contribution_counts: List[int], max_height: float):
+    max_count = max(contribution_counts)
+    return [count / max_count * max_height for count in contribution_counts]
+
+
 def generate_skyline_model(
     contribution_counts: List[int], username: str, year: int, logo_path: Path, logo_scale: float
 ) -> solid2.union:
@@ -197,7 +202,6 @@ def generate_skyline_model(
         msg = "Number of conributions is not perfectly divisible by 7, check that padding is applied correctly"
         raise ValueError(msg)
 
-    max_contributions = max(contribution_counts)
     base_length_warn_threshold = 100
 
     # Parameters
@@ -275,35 +279,35 @@ def generate_skyline_model(
 
     # Build bars
     bars = None
+    bar_heights = get_bar_heights(contribution_counts=contribution_counts, max_height=bar_max_height)
 
     week_number = 0
     last_weekday = 6  # Saturday
-    for i in range(len(contribution_counts)):
+    for i, bar_height in enumerate(bar_heights):
         day_number = i % 7
         bar_x_factor = week_number
         bar_y_factor = 6 - day_number
 
-        if contribution_counts[i] != 0:
-            bar = translate(
+        bar = translate(
+            [
+                base_top_offset + bar_l_margin + bar_x_factor * bar_base_dimension,
+                base_top_offset + bar_w_margin + bar_y_factor * bar_base_dimension,
+                base_height,
+            ]
+        )(
+            cube(
                 [
-                    base_top_offset + bar_l_margin + bar_x_factor * bar_base_dimension,
-                    base_top_offset + bar_w_margin + bar_y_factor * bar_base_dimension,
-                    base_height,
+                    bar_base_dimension,
+                    bar_base_dimension,
+                    bar_height,
                 ]
-            )(
-                cube(
-                    [
-                        bar_base_dimension,
-                        bar_base_dimension,
-                        contribution_counts[i] / max_contributions * bar_max_height,
-                    ]
-                )
             )
+        )
 
-            if bars is None:
-                bars = bar
-            else:
-                bars += bar
+        if bars is None:
+            bars = bar
+        else:
+            bars += bar
 
         if day_number == last_weekday:
             week_number += 1
