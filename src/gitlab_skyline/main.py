@@ -417,7 +417,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--handle-x", type=float, help="Username handle x offset from left (mm)", default=35)
     parser.add_argument("--engrave-depth", type=float, help="Logo and text engrave depth (mm)", default=0.4)
     parser.add_argument(
-        "--cap-pct", type=float, help="Percentile of non-zero contributions to cap outliers to", default=95
+        "--cap-pct", type=float, help="Percentile of non-zero contributions to cap outliers to (%)", default=95
     )
     parser.add_argument("--loglevel", type=str, help="Log level", default="INFO")
 
