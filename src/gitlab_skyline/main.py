@@ -84,7 +84,9 @@ def get_contributions_cache(path: Path) -> List[Tuple[datetime.date, int]]:
             raise ValueError(f"Cache is invalid JSON ({path}): {e}")
 
     logger.debug(f"Cache is valid ({path})")
-    date_contributions = [(datetime.datetime.strptime(d, "%Y-%m-%d").date(), c) for d, c in date_contributions_map.items()]
+    date_contributions = [
+        (datetime.datetime.strptime(d, "%Y-%m-%d").date(), c) for d, c in date_contributions_map.items()
+    ]
     date_contributions.sort()
     return date_contributions
 
@@ -187,6 +189,27 @@ def pad_date_contributions_weekdays(date_contributions: List[Tuple[str, int]]) -
     logger.debug(f"Left padding: {left_padding}")
     logger.debug(f"Right padding: {right_padding}")
     return left_padding + date_contributions + right_padding
+
+
+def percentile(values, percent, key=lambda x: x):
+    target_idx = (len(values) - 1) * percent
+    next_idx = math.floor(target_idx)
+    previous_idx = math.ceil(target_idx)
+    if next_idx == previous_idx:
+        return key(values[int(target_idx)])
+    d0 = key(values[int(next_idx)]) * (previous_idx - target_idx)
+    d1 = key(values[int(previous_idx)]) * (target_idx - next_idx)
+    return d0 + d1
+
+
+def cap_outliers(date_contributions: List[Tuple[str, int]], threshold_percentile: float) -> List[Tuple[str, int]]:
+    _, contribution_counts = zip(*date_contributions)
+    non_zero_sorted_contribution_counts = sorted([count for count in contribution_counts if count > 0])
+    outlier_threshold = percentile(non_zero_sorted_contribution_counts, percent=threshold_percentile / 100)
+    logger.debug(f"Outlier threshold: {outlier_threshold}")
+    return [
+        (date, outlier_threshold) if count > outlier_threshold else (date, count) for date, count in date_contributions
+    ]
 
 
 def get_bar_heights(contribution_counts: List[int], max_height: float):
@@ -408,6 +431,10 @@ def main():
         )
         logger.debug(f"Caching contributions to {cache_path}")
         put_contributions_cache(date_contributions=date_contributions, path=cache_path)
+
+    # TODO: Validate contributions
+
+    date_contributions = cap_outliers(date_contributions=date_contributions, threshold_percentile=95)
 
     if args.truncate:
         logger.info("Truncating dates before first contribution")
