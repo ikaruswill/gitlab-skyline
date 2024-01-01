@@ -206,10 +206,15 @@ def cap_outliers(date_contributions: List[Tuple[str, int]], threshold_percentile
     _, contribution_counts = zip(*date_contributions)
     non_zero_sorted_contribution_counts = sorted([count for count in contribution_counts if count > 0])
     outlier_threshold = percentile(non_zero_sorted_contribution_counts, percent=threshold_percentile / 100)
-    logger.debug(f"Outlier threshold: {outlier_threshold}")
-    return [
-        (date, outlier_threshold) if count > outlier_threshold else (date, count) for date, count in date_contributions
-    ]
+    outliers = [(i, (date, outlier_threshold)) for i, (date, count) in enumerate(date_contributions) if count > outlier_threshold]
+
+    result = date_contributions.copy()
+    for i, date_contribution in outliers:
+        result[i] = date_contribution
+    
+    logger.info(f"{len(outliers)} outliers capped to threshold value: {outlier_threshold}")
+    logger.debug(f"Outliers: {outliers}")
+    return result
 
 
 def get_bar_heights(contribution_counts: List[int], max_height: float):
@@ -434,7 +439,7 @@ def main():
         put_contributions_cache(date_contributions=date_contributions, path=cache_path)
 
     # TODO: Validate contributions
-
+    logger.info(f"Capping outliers to the {args.cap} percentile value...")
     date_contributions = cap_outliers(date_contributions=date_contributions, threshold_percentile=args.cap)
 
     if args.truncate:
