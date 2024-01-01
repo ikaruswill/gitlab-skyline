@@ -451,8 +451,8 @@ def main():
         put_contributions_cache(date_contributions=date_contributions, path=cache_path)
 
     # TODO: Validate contributions
-    logger.info(f"Capping outliers to the {args.cap} percentile value...")
-    date_contributions = cap_outliers(date_contributions=date_contributions, threshold_percentile=args.cap)
+    logger.info(f"Capping outliers to the {args.cap_pct} percentile value...")
+    date_contributions = cap_outliers(date_contributions=date_contributions, threshold_percentile=args.cap_pct)
 
     if args.truncate:
         logger.info("Truncating dates before first contribution")
