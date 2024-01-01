@@ -378,6 +378,7 @@ def fix_url(url: str) -> str:
     if not url.startswith("https://") or not url.startswith("http://"):
         logger.warning("Scheme not provided in url argument, assuming 'https'...")
         return f"https://{url}"
+    return url
 
 
 def parse_args() -> argparse.Namespace:
