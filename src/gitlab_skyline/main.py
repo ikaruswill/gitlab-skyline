@@ -59,7 +59,7 @@ def get_output_filename(url: str, username: str, year: int):
 
 
 def put_contributions_cache(date_contributions: List[Tuple[datetime.date, int]], path: Path):
-    date_contributions_map = {d.strftime("%Y-%m-%d"): c for d, c in sorted(date_contributions, key=operator.itemgetter(0))}
+    date_contributions_map = {d.strftime("%Y-%m-%d"): c for d, c in sorted(date_contributions)}
 
     with open(path, 'w') as f:
         json.dump(date_contributions_map, f)
@@ -85,7 +85,7 @@ def get_contributions_cache(path: Path) -> List[Tuple[datetime.date, int]]:
 
     logger.debug(f"Cache is valid ({path})")
     date_contributions = [(datetime.datetime.strptime(d, "%Y-%m-%d").date(), c) for d, c in date_contributions_map.items()]
-    date_contributions.sort(key=operator.itemgetter(0))
+    date_contributions.sort()
     return date_contributions
 
 
@@ -112,7 +112,7 @@ def get_contributions(
         )
     )
     loop.close()
-    date_contributions.sort(key=operator.itemgetter(0))
+    date_contributions.sort()
     return date_contributions
 
 
