@@ -19,6 +19,7 @@ Generate a 3D Skyline in OpenSCAD and STL from GitLab contributions
   - [Customizable logo](#customizable-logo)
   - [Supports private GitLab installations](#supports-private-gitlab-installations)
   - [Non-public user contribution history](#non-public-user-contribution-history)
+  - [Start date model truncation](#start-date-model-truncation)
   - [STL export](#stl-export)
 - [License](#license)
 - [Credits](#credits)
@@ -86,7 +87,9 @@ The skyline model generated, when viewed from above, is identical to the contrib
 >Previous implementations generated models with contribution bars that did not match the profile heatmap.
 
 ## Outlier detection and handling
-Outlier dates with extremely high contribution counts tend to compress the mean heights of the contribution bars. To handle outliers, by default, maximum contribution counts are capped at the 95th percentile contribution counts of non-zero contribution dates. This means any days with contribution counts higher than 95% of dates with at least 1 contribution, will be set to the 95th percentile value. If the 95th percentile value does not exist, it will be linearly interpolated from existing values.
+Outlier dates with extremely high contribution counts tend to compress the mean heights of the contribution bars. To handle outliers, by default, maximum contribution counts are capped at the 95th percentile contribution counts of non-zero contribution dates. 
+
+This means any days with contribution counts higher than 95% of dates with at least 1 contribution, will be set to the 95th percentile value. If the 95th percentile value does not exist, it will be linearly interpolated from existing values.
 
 ## Dynamic sizing for the current year
 If you left the `year` argument blank or set the year to be the current year, the length of the model will be dynamically adjusted based on the number of columns of contribution bars up till the current week. This is because dates that fall in the future are skipped and do not generate contribution bars.
@@ -102,6 +105,11 @@ If your GitLab is self-hosted on a custom domain, you may specify the domain usi
 If you are not getting any contributions for the target user despite the heatmap being visible in the user's profile page, the user most likely has a private contribution history that is hidden from the public API.
 
 To access private contribution history, [generate a Personal Access Token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html#create-a-personal-access-token) with the `read_user` scope, and supply it with the `--token` argument. 
+
+## Start date model truncation
+If you are generating a model for someone who just started contributing in your organization (e.g. interns), then it is perhaps important to encode the start date in the model implicitly by truncating all dates before the first contribution. 
+
+This feature can be enabled by setting the `--truncate` flag.
 
 ## STL export
 To enable STL export alongside SCAD export, supply the `--stl` argument. 
