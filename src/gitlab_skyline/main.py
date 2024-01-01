@@ -401,6 +401,7 @@ def parse_args() -> argparse.Namespace:
         default=Path(__file__).parent.absolute() / "gitlab.svg",
     )
     parser.add_argument("--logo-scale", type=float, help="Scale factor for logo", default=0.09)
+    parser.add_argument("--cap", type=float, help="Percentile of non-zero contributions to cap outliers to", default=95)
     parser.add_argument("--loglevel", type=str, help="Log level", default="INFO")
 
     return parser.parse_args()
@@ -434,7 +435,7 @@ def main():
 
     # TODO: Validate contributions
 
-    date_contributions = cap_outliers(date_contributions=date_contributions, threshold_percentile=95)
+    date_contributions = cap_outliers(date_contributions=date_contributions, threshold_percentile=args.cap)
 
     if args.truncate:
         logger.info("Truncating dates before first contribution")
