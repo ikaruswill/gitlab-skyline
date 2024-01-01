@@ -389,7 +389,7 @@ def parse_args() -> argparse.Namespace:
         nargs="?",
     )
     parser.add_argument("-t", "--truncate", action="store_true", help="Truncate dates before first contribution")
-    parser.add_argument("-o", "--output", type=Path, help="Output path", default=Path.cwd())
+    parser.add_argument("-o", "--output", type=Path, help="Output path", default=Path.cwd().relative_to(Path.cwd()))
     parser.add_argument("--stl", action="store_true", help="Export an STL file as well (Requires openscad binary)")
     parser.add_argument("--url", type=str, help="GitLab URL", default="https://gitlab.com")
     parser.add_argument("--token", type=str, help="Personal access token", default=None)
@@ -435,7 +435,7 @@ def main():
         date_contributions = get_contributions(
             userid=userid, dates=dates, gitlab_url=args.url, token=args.token, concurrency=args.concurrency
         )
-        logger.debug(f"Caching contributions to {cache_path}")
+        logger.debug(f"Caching contributions to {cache_path}...")
         put_contributions_cache(date_contributions=date_contributions, path=cache_path)
 
     # TODO: Validate contributions
@@ -454,6 +454,10 @@ def main():
     logger.debug(f"Contribution counts {contribution_counts}")
 
     logger.info("Generating model...")
+    if args.logo:
+        logger.info(f"Using user-defined logo from: {args.logo}")
+    if args.logo:
+        logger.info(f"Using logo scale factor of: {args.logo_scale}")
     model = generate_skyline_model(
         contribution_counts=contribution_counts,
         username=args.username,
@@ -463,7 +467,6 @@ def main():
     )
 
     logger.info("Rendering models to file...")
-
     scad_path = args.output / f"{output_filename}.scad"
     stl_path = args.output / f"{output_filename}.stl"
     render_scad(model=model, path=scad_path)
