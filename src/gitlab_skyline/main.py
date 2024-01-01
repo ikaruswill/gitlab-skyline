@@ -222,7 +222,7 @@ def generate_skyline_model(
 ) -> solid2.union:
     """Generate SCAD model of contributions"""
     if len(contribution_counts) % 7 > 0:
-        msg = "Number of conributions is not perfectly divisible by 7, check that padding is applied correctly"
+        msg = "Number of contributions is not perfectly divisible by 7, check that padding is applied correctly"
         raise ValueError(msg)
 
     base_length_warn_threshold = 100
