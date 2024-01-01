@@ -346,7 +346,7 @@ def fix_url(url: str) -> str:
         return f"https://{url}"
 
 
-def main():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="gitlab-skyline",
         description="Create OpenSCAD [and STL] models from GitLab contributions",
@@ -380,7 +380,11 @@ def main():
     parser.add_argument("--logo-scale", type=float, help="Scale factor for logo", default=0.09)
     parser.add_argument("--loglevel", type=str, help="Log level", default="INFO")
 
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
 
     _init_logger()
     logger.setLevel(args.loglevel.upper())
