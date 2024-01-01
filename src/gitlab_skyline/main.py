@@ -206,12 +206,16 @@ def cap_outliers(date_contributions: List[Tuple[str, int]], threshold_percentile
     _, contribution_counts = zip(*date_contributions)
     non_zero_sorted_contribution_counts = sorted([count for count in contribution_counts if count > 0])
     outlier_threshold = percentile(non_zero_sorted_contribution_counts, percent=threshold_percentile / 100)
-    outliers = [(i, (date, outlier_threshold)) for i, (date, count) in enumerate(date_contributions) if count > outlier_threshold]
+    outliers = [
+        (i, (date, outlier_threshold))
+        for i, (date, count) in enumerate(date_contributions)
+        if count > outlier_threshold
+    ]
 
     result = date_contributions.copy()
     for i, date_contribution in outliers:
         result[i] = date_contribution
-    
+
     logger.info(f"{len(outliers)} outliers capped to threshold value: {outlier_threshold}")
     logger.debug(f"Outliers: {outliers}")
     return result
@@ -223,7 +227,15 @@ def get_bar_heights(contribution_counts: List[int], max_height: float):
 
 
 def generate_skyline_model(
-    contribution_counts: List[int], username: str, year: int, logo_path: Path, logo_scale: float
+    contribution_counts: List[int],
+    username: str,
+    year: int,
+    logo_path: Path,
+    logo_scale: float,
+    logo_y: float,
+    logo_text_margin: float,
+    handle_x: float,
+    engrave_depth: float,
 ) -> solid2.union:
     """Generate SCAD model of contributions"""
     if len(contribution_counts) % 7 > 0:
@@ -240,12 +252,6 @@ def generate_skyline_model(
     bar_max_height = 20
     bar_l_margin = 2.5
     bar_w_margin = 2.5
-
-    engrave_depth = 0.4
-
-    logo_text_margin = 10
-    handle_x = 35
-    logo_y = 1.25
 
     # Coupled text parameters: Any change requires tuning all visually
     text_size = 5
@@ -405,8 +411,14 @@ def parse_args() -> argparse.Namespace:
         help="Path to SVG of logo to be engraved on the front face",
         default=Path(__file__).parent.absolute() / "gitlab.svg",
     )
-    parser.add_argument("--logo-scale", type=float, help="Scale factor for logo", default=0.09)
-    parser.add_argument("--cap", type=float, help="Percentile of non-zero contributions to cap outliers to", default=95)
+    parser.add_argument("--logo-scale", type=float, help="Logo scale factor", default=0.09)
+    parser.add_argument("--logo-y", type=float, help="Logo y-offset from bottom (mm)", default=1.25)
+    parser.add_argument("--logo-margin", type=float, help="Logo and text x margin from sides (mm)", default=10)
+    parser.add_argument("--handle-x", type=float, help="Username handle x offset from left (mm)", default=35)
+    parser.add_argument("--engrave-depth", type=float, help="Logo and text engrave depth (mm)", default=0.4)
+    parser.add_argument(
+        "--cap-pct", type=float, help="Percentile of non-zero contributions to cap outliers to", default=95
+    )
     parser.add_argument("--loglevel", type=str, help="Log level", default="INFO")
 
     return parser.parse_args()
@@ -464,6 +476,10 @@ def main():
         year=args.year,
         logo_path=args.logo,
         logo_scale=args.logo_scale,
+        logo_y=args.logo_y,
+        logo_text_margin=args.logo_margin,
+        handle_x=args.handle_x,
+        engrave_depth=args.engrave_depth,
     )
 
     logger.info("Rendering models to file...")
