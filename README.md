@@ -46,9 +46,12 @@ gitlab-skyline <username> <year>
 
 ## Arguments available
 ```
-gitlab-skyline --help
-usage: gitlab-skyline [-h] [-t] [-o OUTPUT] [--stl] [--url URL] [--token TOKEN] [--concurrency CONCURRENCY] [--logo LOGO] [--logo-scale LOGO_SCALE] [--logo-y LOGO_Y]
-                      [--logo-margin LOGO_MARGIN] [--handle-x HANDLE_X] [--engrave-depth ENGRAVE_DEPTH] [--cap-pct CAP_PCT] [--loglevel LOGLEVEL]
+usage: gitlab-skyline [-h] [-t] [-o OUTPUT] [--stl] [--url URL] [--token TOKEN]
+                      [--concurrency CONCURRENCY] [--cached] [--logo LOGO]
+                      [--logo-scale LOGO_SCALE] [--logo-y LOGO_Y]
+                      [--logo-margin LOGO_MARGIN] [--handle-x HANDLE_X]
+                      [--engrave-depth ENGRAVE_DEPTH] [--cap-pct CAP_PCT]
+                      [--loglevel LOGLEVEL]
                       username [year]
 
 Create OpenSCAD [and STL] models from GitLab contributions
@@ -62,12 +65,17 @@ options:
   -t, --truncate        Truncate dates before first contribution (default: False)
   -o OUTPUT, --output OUTPUT
                         Output path (default: .)
-  --stl                 Export an STL file as well (Requires openscad binary) (default: False)
+  --stl                 Export an STL file as well (Requires openscad binary) (default:
+                        False)
   --url URL             GitLab URL (default: https://gitlab.com)
   --token TOKEN         Personal access token (default: None)
   --concurrency CONCURRENCY
                         Max concurrent requests to GitLab (default: 2)
-  --logo LOGO           Path to SVG of logo to be engraved on the front face (default: /Users/will.ho/Documents/Dev/Projects/gitlab-skyline/src/gitlab_skyline/gitlab.svg)
+  --cached              Force the use of expired cached data (if available) (default:
+                        False)
+  --logo LOGO           Path to SVG of logo to be engraved on the front face (default:
+                        /Users/will.ho/Documents/Dev/Projects/gitlab-
+                        skyline/src/gitlab_skyline/gitlab.svg)
   --logo-scale LOGO_SCALE
                         Logo scale factor (default: 0.09)
   --logo-y LOGO_Y       Logo y-offset from bottom (mm) (default: 1.25)
@@ -76,7 +84,8 @@ options:
   --handle-x HANDLE_X   Username handle x offset from left (mm) (default: 35)
   --engrave-depth ENGRAVE_DEPTH
                         Logo and text engrave depth (mm) (default: 0.4)
-  --cap-pct CAP_PCT     Percentile of non-zero contributions to cap outliers to (%) (default: 95)
+  --cap-pct CAP_PCT     Percentile of non-zero contributions to cap outliers to (%)
+                        (default: 95)
   --loglevel LOGLEVEL   Log level (default: INFO)
 ```
 
