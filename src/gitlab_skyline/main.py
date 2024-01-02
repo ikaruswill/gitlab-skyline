@@ -55,7 +55,8 @@ def get_userid(username: str, gitlab_url) -> int:
 
 def get_output_filename(url: str, username: str, year: int):
     domain = urllib.parse.urlparse(url).netloc
-    return f"{domain}_{username}_{year}"
+    separator = "_"
+    return separator.join((domain, username, year))
 
 
 def put_contributions_cache(date_contributions: List[Tuple[datetime.date, int]], path: Path):
