@@ -65,7 +65,7 @@ def put_contributions_cache(date_contributions: List[Tuple[datetime.date, int]],
         json.dump(date_contributions_map, f)
 
 
-def get_contributions_cache(path: Path) -> List[Tuple[datetime.date, int]]:
+def get_contributions_cache(path: Path, force: bool) -> List[Tuple[datetime.date, int]]:
     if not path.exists():
         raise ValueError(f"Cache does not exist ({path})")
     if not path.is_file():
@@ -75,7 +75,9 @@ def get_contributions_cache(path: Path) -> List[Tuple[datetime.date, int]]:
     current_time = datetime.datetime.now()
     cache_age = current_time - cache_modified_time
     if cache_age >= cache_expiry:
-        raise ValueError(f"Cache has expired ({cache_age.seconds / 3600} hours > {CACHE_EXPIRY_HOURS} hours) ({path})")
+        if not force:
+            raise ValueError(f"Cache has expired ({cache_age.seconds / 3600} hours > {CACHE_EXPIRY_HOURS} hours) ({path})")
+        logging.INFO(f"Cache has expired, forcing load on user request...")
 
     with open(path) as f:
         try:
@@ -406,6 +408,7 @@ def parse_args() -> argparse.Namespace:
         help="Max concurrent requests to GitLab",
         default=2,
     )
+    parser.add_argument("--cached", action="store_true", help="Force the use of expired cached data (if available)")
     parser.add_argument(
         "--logo",
         type=Path,
@@ -435,12 +438,12 @@ def main():
     output_filename = get_output_filename(url=args.url, username=args.username, year=args.year)
     cache_path = args.output / f"{output_filename}.json"
 
-    logger.debug(f"Checking for cached results at {cache_path}...")
+    logger.info(f"Checking for cached results at {cache_path}...")
     try:
-        date_contributions = get_contributions_cache(path=cache_path)
+        date_contributions = get_contributions_cache(path=cache_path, force=args.cached)
         logger.info("Using cached results, skipping fetch...")
     except ValueError as e:
-        logger.debug(f"No valid cached results found at {cache_path}")
+        logger.debug(f"No valid cached results found at {cache_path}: {e}")
         dates = get_dates_in_year(year=args.year)
         userid = get_userid(username=args.username, gitlab_url=args.url)
 
