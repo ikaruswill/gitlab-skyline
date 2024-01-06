@@ -78,7 +78,7 @@ def get_contributions_cache(path: Path, force: bool) -> List[Tuple[datetime.date
     if cache_age >= cache_expiry:
         if not force:
             raise ValueError(f"Cache has expired ({cache_age.seconds / 3600} hours > {CACHE_EXPIRY_HOURS} hours) ({path})")
-        logging.INFO(f"Cache has expired, forcing load on user request...")
+        logger.info(f"Cache has expired, forcing load on user request...")
 
     with open(path) as f:
         try:
