@@ -9,7 +9,7 @@ import subprocess
 import sys
 import urllib.parse
 from pathlib import Path
-from typing import List, Tuple
+from typing import Callable, List, Tuple, Union
 
 import aiohttp
 import requests
@@ -54,12 +54,14 @@ def get_userid(username: str, gitlab_url) -> int:
 
 
 def get_output_filename(url: str, username: str, year: int):
+    """Generate standardized output filename from arguments"""
     domain = urllib.parse.urlparse(url).netloc
     separator = "_"
     return separator.join((domain, username, str(year)))
 
 
 def put_contributions_cache(date_contributions: List[Tuple[datetime.date, int]], path: Path):
+    """Write date contributions to cache at path"""
     date_contributions_map = {d.strftime("%Y-%m-%d"): c for d, c in sorted(date_contributions)}
 
     with open(path, 'w') as f:
@@ -67,6 +69,7 @@ def put_contributions_cache(date_contributions: List[Tuple[datetime.date, int]],
 
 
 def get_contributions_cache(path: Path, force: bool) -> List[Tuple[datetime.date, int]]:
+    """Read cached date contributions at specified path with checks for cache age"""
     if not path.exists():
         raise ValueError(f"Cache does not exist ({path})")
     if not path.is_file():
@@ -77,7 +80,9 @@ def get_contributions_cache(path: Path, force: bool) -> List[Tuple[datetime.date
     cache_age = current_time - cache_modified_time
     if cache_age >= cache_expiry:
         if not force:
-            raise ValueError(f"Cache has expired ({cache_age.seconds / 3600} hours > {CACHE_EXPIRY_HOURS} hours) ({path})")
+            raise ValueError(
+                f"Cache has expired ({cache_age.seconds / 3600} hours > {CACHE_EXPIRY_HOURS} hours) ({path})"
+            )
         logger.info(f"Cache has expired, forcing load on user request...")
 
     with open(path) as f:
@@ -176,7 +181,7 @@ def get_first_contribution_index(date_contributions: List[Tuple[datetime.date, i
 
 
 def pad_date_contributions_weekdays(date_contributions: List[Tuple[str, int]]) -> List[Tuple[str, int]]:
-    """Ensure that data starts with a Sunday and ends with a Saturday"""
+    """Ensure that date contributions starts with a Sunday and ends with a Saturday"""
     first_date = date_contributions[0][0]
     last_date = date_contributions[-1][0]
     logger.debug(f"First date: {first_date.strftime('%Y-%m-%d')}")
@@ -194,7 +199,8 @@ def pad_date_contributions_weekdays(date_contributions: List[Tuple[str, int]]) -
     return left_padding + date_contributions + right_padding
 
 
-def percentile(values, percent, key=lambda x: x):
+def percentile(values: List[Union[int, float]], percent: float, key: Callable = lambda x: x):
+    """Get the nth percentile value of a list of values. If the value does not exist, it is linearly interpolated from neighboring values."""
     target_idx = (len(values) - 1) * percent
     next_idx = math.floor(target_idx)
     previous_idx = math.ceil(target_idx)
@@ -206,6 +212,7 @@ def percentile(values, percent, key=lambda x: x):
 
 
 def cap_outliers(date_contributions: List[Tuple[str, int]], threshold_percentile: float) -> List[Tuple[str, int]]:
+    """Cap outlier contribution counts above a threshold percentile to the percentile value"""
     _, contribution_counts = zip(*date_contributions)
     non_zero_sorted_contribution_counts = sorted([count for count in contribution_counts if count > 0])
     outlier_threshold = percentile(non_zero_sorted_contribution_counts, percent=threshold_percentile / 100)
@@ -225,6 +232,7 @@ def cap_outliers(date_contributions: List[Tuple[str, int]], threshold_percentile
 
 
 def get_bar_heights(contribution_counts: List[int], max_height: float):
+    """Get contiribution bar heights from contribution counts"""
     max_count = max(contribution_counts)
     return [count / max_count * max_height for count in contribution_counts]
 
@@ -358,11 +366,13 @@ def generate_skyline_model(
 
 
 def render_scad(model: solid2.union, path: Path):
+    """Render model to SCAD file"""
     scad_render_to_file(model, filename=path.name, out_dir=str(path.parent))
     logger.info(f"Generated SCAD file: {path}")
 
 
 def render_stl(scad_path: Path, path: Path):
+    """Read SCAD model from path and render STL"""
     try:
         subprocess.run(
             ["openscad", "-o", str(path), str(scad_path)],
@@ -378,6 +388,7 @@ def render_stl(scad_path: Path, path: Path):
 
 
 def fix_url(url: str) -> str:
+    """Validate and fix URL"""
     if not url.startswith("https://") and not url.startswith("http://"):
         logger.warning("Scheme not provided in url argument, assuming 'https'...")
         return f"https://{url}"
@@ -385,6 +396,7 @@ def fix_url(url: str) -> str:
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse arguments supplied by user"""
     parser = argparse.ArgumentParser(
         prog="gitlab-skyline",
         description="Create OpenSCAD [and STL] models from GitLab contributions",
